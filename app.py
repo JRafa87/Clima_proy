@@ -1,15 +1,48 @@
 import streamlit as st
 import pandas as pd
 import requests
-from predicciones import load_models, predict_fertility_and_cultivo  # Asegúrate de tener esta función implementada en tu archivo predicciones.py
-from clima_api import get_weather_data  # Asegúrate de que get_weather_data esté implementada correctamente
+from geopy.geocoders import Nominatim  # Importamos geopy
 
-# Función para obtener la altitud (elevación) usando Open-Elevation API
-def get_elevation(lat, lon):
-    url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
-    response = requests.get(url)
-    data = response.json()
-    return data['results'][0]['elevation']  # Retorna la altitud en metros
+
+# Función para obtener el nombre del lugar a partir de latitud y longitud
+def get_location_name(lat, lon):
+    geolocator = Nominatim(user_agent="myGeocoder")
+    location = geolocator.reverse((lat, lon), language='es', timeout=10)
+    
+    if location:
+        return location.address  # Retorna la dirección completa (nombre del lugar)
+    else:
+        return "Ubicación desconocida"  # Si no se puede obtener el nombre
+
+# Función para obtener los datos del clima
+def get_weather_data(lat, lon):
+    api_key = "f75c529787e26621bbd744dd67c056b0"  # Reemplaza con tu propia API Key de OpenWeather
+    base_url = "https://api.openweathermap.org/data/2.5/weather"
+    
+    # Parámetros para la consulta
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+        "units": "metric",  # Para obtener la temperatura en grados Celsius
+        "lang": "es"  # Respuesta en español
+    }
+    
+    try:
+        # Hacer la solicitud GET
+        response = requests.get(base_url, params=params)
+        data = response.json()
+        
+        # Verificar si la respuesta es exitosa
+        if response.status_code == 200:
+            # Extraer la humedad
+            humidity = data['main']['humidity']
+            
+            return humidity  # Retornar solo la humedad
+        else:
+            return {'error': f"Error en la solicitud: {data['message']}"}
+    except Exception as e:
+        return {'error': f"Error al obtener los datos: {str(e)}"}
 
 # Función principal para la interfaz
 def main():
@@ -119,20 +152,7 @@ def main():
             potasio, humedad, densidad, altitud,
         ]], columns=[ 
             "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
-            "fosforo", "potasio", "humedad", "densidad", "altitud", 
-        ])
 
-        # Hacer la predicción con los modelos cargados
-        fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
-
-        # Mostrar las predicciones
-        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]}</div>", unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
 
 
 

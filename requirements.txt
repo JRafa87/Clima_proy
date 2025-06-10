@@ -4,3 +4,4 @@ pandas
 xgboost
 streamlit-folium
 scikit-learn
+geopy
