@@ -154,7 +154,12 @@ def main():
     
     # Si ya se capturó la humedad y la altitud, prellenamos esos campos
     humedad = st.number_input("Humedad (%)", value=humidity if humidity else 0, min_value=0, max_value=100)
-    altitud = st.number_input("Altitud (metros)", value=elevation if elevation else 0, min_value=0)
+    # Asegúrate de que elevation tenga un valor numérico válido
+    elevation_value = elevation if isinstance(elevation, (int, float)) else 0
+
+    # Usar el valor adecuado en number_input
+    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
+
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
