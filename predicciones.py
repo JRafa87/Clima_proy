@@ -4,10 +4,15 @@ import joblib  # Asegúrate de importar joblib
 def load_models():
     try:
         # Cargar los modelos desde las rutas proporcionadas
-        fertilidad_model = joblib.load("ruta_a_tu_modelo_fertilidad.pkl")
-        cultivo_model = joblib.load("ruta_a_tu_modelo_cultivo.pkl")
+        fertilidad_model = joblib.load("ruta_a_tu_modelo_fertilidad.pkl")  # Asegúrate de colocar la ruta correcta
+        cultivo_model = joblib.load("ruta_a_tu_modelo_cultivo.pkl")  # Asegúrate de colocar la ruta correcta
         return fertilidad_model, cultivo_model
+    except FileNotFoundError as e:
+        # Si los archivos no se encuentran
+        print(f"Error: No se pudo encontrar uno de los archivos de modelo. {str(e)}")
+        return None, None
     except Exception as e:
+        # Captura cualquier otro tipo de error
         print(f"Error al cargar los modelos: {str(e)}")
         return None, None
 
@@ -16,7 +21,6 @@ def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
     if fertilidad_model is None or cultivo_model is None:
         raise ValueError("Los modelos no se cargaron correctamente. Verifica los archivos.")
     
-    # Realizar las predicciones
     try:
         # Predicción de fertilidad
         fertilidad = int(fertilidad_model.predict(input_data)[0])
@@ -26,12 +30,18 @@ def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
         predicted_cultivo = "Ninguno"
         if fertilidad == 1:
             cultivo = int(cultivo_model.predict(input_data)[0])
-            cultivos = ["Trigo", "Maíz", "Caña de Azúcar", "Algodón", "Arroz", "Papa", "Cebolla", "Tomate", "Batata", "Brócoli", "Café"]
+            # Lista de cultivos posibles, en función del modelo de cultivo
+            cultivos = [
+                "Trigo", "Maíz", "Caña de Azúcar", "Algodón", "Arroz", "Papa",
+                "Cebolla", "Tomate", "Batata", "Brócoli", "Café"
+            ]
             predicted_cultivo = cultivos[cultivo] if cultivo < len(cultivos) else "Desconocido"
         
         return predicted_fertilidad, predicted_cultivo
     except Exception as e:
+        # Captura cualquier error durante la predicción
         print(f"Error en la predicción: {str(e)}")
         return "Error en la predicción", "Error en la predicción"
+
 
 
