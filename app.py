@@ -43,6 +43,15 @@ def get_weather_data(lat, lon):
     except Exception as e:
         return {'error': f"Error al obtener los datos: {str(e)}"}
 
+
+# Función para obtener la altitud (elevación) usando Open-Elevation API
+def get_elevation(lat, lon):
+    url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
+    response = requests.get(url)
+    data = response.json()
+    return data['results'][0]['elevation']  # Retorna la altitud en metros
+
+
 # Función principal para la interfaz
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
