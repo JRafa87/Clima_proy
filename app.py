@@ -62,6 +62,11 @@ def main():
     weather_option = st.radio("¿Cómo deseas obtener los datos del clima?", 
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
+    # Inicializar las variables de clima con un valor por defecto
+    temperature = None
+    humidity = None
+    wind_speed = None
+
     # Obtener ubicación actual del usuario
     if weather_option == "Por ubicación actual":
         # Pedir permiso para geolocalización
@@ -79,6 +84,11 @@ def main():
             # Obtener los datos del clima con la ubicación seleccionada
             weather_data = get_weather_data(lat, lon)
             st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
+            
+            # Asignar los datos climáticos obtenidos
+            temperature = weather_data.get('temperature', None)
+            humidity = weather_data.get('humidity', None)
+            wind_speed = weather_data.get('wind_speed', None)
         else:
             st.write("No se pudo obtener la ubicación. Asegúrate de haber permitido el acceso a tu ubicación.")
 
@@ -92,6 +102,11 @@ def main():
         if st.button("Obtener clima", key="get_weather_button"):
             weather_data = get_weather_data(lat, lon)
             st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
+            
+            # Asignar los datos climáticos obtenidos
+            temperature = weather_data.get('temperature', None)
+            humidity = weather_data.get('humidity', None)
+            wind_speed = weather_data.get('wind_speed', None)
 
     elif weather_option == "Manualmente":
         st.markdown("<div class='section-title'>Ingrese los datos climáticos manualmente</div>", unsafe_allow_html=True)
@@ -104,15 +119,19 @@ def main():
     tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4], key="tipo_suelo")
     pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, key="ph")
 
-    if st.button("Predecir", key="predict_button"):
-        # Compilación de los datos para la predicción
-        input_data = pd.DataFrame([[tipo_suelo, pH, temperature, humidity, wind_speed]], 
-                                  columns=["tipo_suelo", "pH", "temperature", "humidity", "wind_speed"])
-        prediction = predict_fertility_and_cultivo(input_data)
+    # Asegurarse de que las variables climáticas no sean None antes de la predicción
+    if temperature is not None and humidity is not None and wind_speed is not None:
+        if st.button("Predecir", key="predict_button"):
+            # Compilación de los datos para la predicción
+            input_data = pd.DataFrame([[tipo_suelo, pH, temperature, humidity, wind_speed]], 
+                                      columns=["tipo_suelo", "pH", "temperature", "humidity", "wind_speed"])
+            prediction = predict_fertility_and_cultivo(input_data)
 
-        # Mostrar las predicciones
-        st.markdown("<div class='info-box'>Fertilidad Predicha: {}</div>".format(prediction[0]), unsafe_allow_html=True)
-        st.markdown("<div class='info-box'>Cultivo Predicho: {}</div>".format(prediction[1]), unsafe_allow_html=True)
+            # Mostrar las predicciones
+            st.markdown("<div class='info-box'>Fertilidad Predicha: {}</div>".format(prediction[0]), unsafe_allow_html=True)
+            st.markdown("<div class='info-box'>Cultivo Predicho: {}</div>".format(prediction[1]), unsafe_allow_html=True)
+    else:
+        st.warning("Por favor, asegúrate de tener los datos climáticos completos antes de predecir.")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -123,5 +142,6 @@ def predict_fertility_and_cultivo(input_data):
 
 if __name__ == "__main__":
     main()
+
 
 
