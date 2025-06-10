@@ -34,6 +34,29 @@ def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
 
     return fertility_prediction, crop_prediction
 
+def get_weather_data(lat, lon):
+    try:
+        # Realiza la solicitud a la API para obtener los datos del clima
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid=YOUR_API_KEY"
+        response = requests.get(url)
+        data = response.json()
+
+        if response.status_code == 200:
+            # Extraer los datos relevantes de la respuesta
+            temperature = data['main']['temp']
+            humidity = data['main']['humidity']
+            wind_speed = data['wind']['speed']
+
+            return {
+                'temperature': temperature,
+                'humidity': humidity,
+                'wind_speed': wind_speed
+            }
+        else:
+            raise ValueError(f"Error en la API: {data.get('message', 'Sin detalles disponibles')}")
+    except Exception as e:
+        return {'error': str(e)}
+
 # Función principal para la interfaz
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
@@ -77,10 +100,18 @@ def main():
             lon = st.number_input("Longitud", value=0.0)
 
         if st.button("Obtener clima", key="get_weather_button"):
+            # Obtener los datos climáticos
             weather_data = get_weather_data(lat, lon)
+            
+            # Verificar si la respuesta tiene los datos esperados
+            if 'temperature' in weather_data and 'humidity' in weather_data and 'wind_speed' in weather_data:
+                st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
+                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+            else:
+                st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
+            
+            # Obtener la altitud
             elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                        f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
 
     elif weather_option == "Por ubicación actual":
@@ -91,11 +122,18 @@ def main():
             st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
             
             # Simulamos una ubicación para este ejemplo:
-            lat, lon = 20.0, 0.0  # Estos valores deberían ser obtenidos de la geolocalización real.
-            weather_data = get_weather_data(lat, lon)
+            #lat, lon = 20.0, 0.0  # Estos valores deberían ser obtenidos de la geolocalización real.
+            #weather_data = get_weather_data(lat, lon)
+            
+            # Verificar si la respuesta tiene los datos esperados
+            if 'temperature' in weather_data and 'humidity' in weather_data and 'wind_speed' in weather_data:
+                st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
+                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+            else:
+                st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
+            
+            # Obtener la altitud
             elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                        f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
 
     elif weather_option == "Manualmente":
@@ -142,6 +180,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
