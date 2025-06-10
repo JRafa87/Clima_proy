@@ -58,10 +58,10 @@ def main():
             # Obtener los datos climáticos
             weather_data = get_weather_data(lat, lon)
             
-            # Verificar si la respuesta tiene los datos esperados
-            if 'temperature' in weather_data and 'humidity' in weather_data and 'wind_speed' in weather_data:
+            # Verificar si la respuesta tiene los datos esperados (Temperatura y Humedad)
+            if 'temperature' in weather_data and 'humidity' in weather_data:
                 st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+                            f"Humedad: {weather_data['humidity']}%</div>", unsafe_allow_html=True)
             else:
                 st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
             
@@ -76,14 +76,10 @@ def main():
             location = st.text_input("Ubicación actual", value="No disponible")
             st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
             
-            # Simulamos una ubicación para este ejemplo:
-            #lat, lon = 20.0, 0.0  # Estos valores deberían ser obtenidos de la geolocalización real.
-            #weather_data = get_weather_data(lat, lon)
-            
             # Verificar si la respuesta tiene los datos esperados
-            if 'temperature' in weather_data and 'humidity' in weather_data and 'wind_speed' in weather_data:
+            if 'temperature' in weather_data and 'humidity' in weather_data:
                 st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+                            f"Humedad: {weather_data['humidity']}%</div>", unsafe_allow_html=True)
             else:
                 st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
             
@@ -93,9 +89,7 @@ def main():
 
     elif weather_option == "Manualmente":
         # Campos manuales
-        #temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
-        humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
-        #wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+        humedad_suelo = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Entradas de datos del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
@@ -106,14 +100,11 @@ def main():
     nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0)
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
-    #humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
     altitud = st.number_input("Altitud (metros)", min_value=0)
 
-    # Recoger las variables del clima si están disponibles
-    #temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
-    humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
-    #wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+    # Recoger la variable `humedad_suelo` que es la que ahora se usa
+    humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
@@ -123,11 +114,10 @@ def main():
         # Asegurarse de que el orden de las columnas sea correcto
         input_data = pd.DataFrame([[
             tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, 
-            potasio, humedad, densidad, altitud,
+            potasio, humedad_suelo, densidad, altitud,
         ]], columns=[
             "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
-            "fosforo", "potasio", "humedad", "densidad", "altitud", 
-            "
+            "fosforo", "potasio", "humedad_suelo", "densidad", "altitud", 
         ])
 
         # Hacer la predicción con los modelos cargados
@@ -141,6 +131,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
