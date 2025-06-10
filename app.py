@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from geopy.geocoders import Nominatim  # Importamos geopy
+from predicciones import load_models
 
 # Función para obtener el nombre del lugar a partir de latitud y longitud
 def get_location_name(lat, lon):
