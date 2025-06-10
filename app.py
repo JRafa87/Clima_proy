@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from clima_api import get_weather_data  # Función para consultar el clima
@@ -71,6 +70,11 @@ def main():
                 humidity = weather_data_dict.get('humidity', None)
                 wind_speed = weather_data_dict.get('wind_speed', None)
 
+                # Guardar los datos climáticos en session_state
+                st.session_state['temperature'] = temperature
+                st.session_state['humidity'] = humidity
+                st.session_state['wind_speed'] = wind_speed
+
                 st.markdown(f"<div class='info-box'>Datos del clima: {weather_data_dict}</div>", unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error al procesar los datos del clima: {e}")
@@ -92,6 +96,11 @@ def main():
                 humidity = weather_data_dict.get('humidity', None)
                 wind_speed = weather_data_dict.get('wind_speed', None)
 
+                # Guardar los datos climáticos en session_state
+                st.session_state['temperature'] = temperature
+                st.session_state['humidity'] = humidity
+                st.session_state['wind_speed'] = wind_speed
+
                 st.markdown(f"<div class='info-box'>Datos del clima: {weather_data_dict}</div>", unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error al procesar los datos del clima: {e}")
@@ -102,14 +111,24 @@ def main():
         humidity = st.number_input("Humedad (%)", min_value=0, max_value=100, key="humidity")
         wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0, key="wind_speed")
 
+        # Guardar los datos manuales en session_state
+        st.session_state['temperature'] = temperature
+        st.session_state['humidity'] = humidity
+        st.session_state['wind_speed'] = wind_speed
+
     # Entradas de datos de suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
     tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4], key="tipo_suelo")
     pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, key="ph")
 
     # Asegurarse de que las variables climáticas no sean None antes de la predicción
-    if temperature is not None and humidity is not None and wind_speed is not None:
+    if 'temperature' in st.session_state and 'humidity' in st.session_state and 'wind_speed' in st.session_state:
         if st.button("Predecir", key="predict_button"):
+            # Recuperar los datos del clima desde session_state
+            temperature = st.session_state['temperature']
+            humidity = st.session_state['humidity']
+            wind_speed = st.session_state['wind_speed']
+
             # Compilación de los datos para la predicción
             input_data = pd.DataFrame([[tipo_suelo, pH, temperature, humidity, wind_speed]], 
                                       columns=["tipo_suelo", "pH", "temperature", "humidity", "wind_speed"])
@@ -151,6 +170,7 @@ def predict_fertility_and_cultivo(input_data):
 
 if __name__ == "__main__":
     main()
+
 
 
 
