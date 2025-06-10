@@ -1,8 +1,25 @@
 import streamlit as st
-import streamlit_folium as st_folium
-from folium import Map, Marker
-from clima_api import get_weather_data  # Función para consultar el clima
 import pandas as pd
+from clima_api import get_weather_data  # Función para consultar el clima
+
+# Función para obtener la ubicación del navegador usando JS
+def get_user_location():
+    js_code = """
+    <script>
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const data = { "lat": lat, "lon": lon };
+            const jsonData = JSON.stringify(data);
+            window.parent.postMessage({ type: 'geolocation', data: jsonData }, "*");
+        });
+    } else {
+        window.parent.postMessage({ type: 'error', data: 'Geolocation is not supported' }, "*");
+    }
+    </script>
+    """
+    st.markdown(js_code, unsafe_allow_html=True)
 
 # Función principal para la interfaz
 def main():
@@ -42,7 +59,27 @@ def main():
     weather_option = st.radio("¿Cómo deseas obtener los datos del clima?", 
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
-    if weather_option == "Por coordenadas":
+    # Obtener ubicación actual del usuario
+    if weather_option == "Por ubicación actual":
+        # Pedir permiso para geolocalización
+        st.write("Estamos obteniendo tu ubicación... Permite el acceso a tu geolocalización en el navegador.")
+        get_user_location()
+
+        # Aquí esperaríamos obtener los datos de la ubicación
+        location_data = st.session_state.get('user_location', None)
+
+        if location_data:
+            lat = location_data['lat']
+            lon = location_data['lon']
+            st.write(f"Ubicación seleccionada: Latitud {lat}, Longitud {lon}")
+            
+            # Obtener los datos del clima con la ubicación seleccionada
+            weather_data = get_weather_data(lat, lon)
+            st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
+        else:
+            st.write("No se pudo obtener la ubicación.")
+
+    elif weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
             lat = st.number_input("Latitud", value=0.0)
@@ -50,29 +87,6 @@ def main():
             lon = st.number_input("Longitud", value=0.0)
 
         if st.button("Obtener clima", key="get_weather_button"):
-            weather_data = get_weather_data(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
-
-    elif weather_option == "Por ubicación actual":
-        # Mapa interactivo para obtener ubicación
-        st.markdown("<div class='section-title'>Seleccione su ubicación en el mapa</div>", unsafe_allow_html=True)
-        st.write("Haz clic en el mapa para seleccionar tu ubicación")
-
-        # Mostrar el mapa y permitir al usuario seleccionar la ubicación
-        folium_map = Map(location=[20.0, 0.0], zoom_start=2)  # Mapa centrado en el mundo
-        marker = Marker([20.0, 0.0])  # Marcador inicial en el mapa
-        folium_map.add_child(marker)
-
-        # Mostrar mapa en la app Streamlit
-        map_response = st_folium(folium_map, width=700, height=500)
-
-        # Verificar si se seleccionó una ubicación en el mapa
-        if map_response and "lat" in map_response and "lon" in map_response:
-            lat = map_response['lat']
-            lon = map_response['lon']
-            st.write(f"Ubicación seleccionada: Latitud {lat}, Longitud {lon}")
-
-            # Obtener los datos del clima con la ubicación seleccionada
             weather_data = get_weather_data(lat, lon)
             st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
 
@@ -102,8 +116,8 @@ def main():
 # Predicción usando los modelos entrenados (esto se debe ajustar a tus modelos)
 def predict_fertility_and_cultivo(input_data):
     # Aquí iría el código de tus modelos entrenados, por ejemplo:
-    # return (fertility_pred, crop_pred)
     return ("Fértil", "Trigo")  # Simulación de resultados
 
 if __name__ == "__main__":
     main()
+
