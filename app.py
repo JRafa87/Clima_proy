@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
-from predicciones import load_models, predict_fertility_and_cultivo
-from clima_api import get_weather_data
 import requests
+import xgboost as xgb
+from predicciones import load_models, predict_fertility_and_cultivo  # Asegúrate de tener esta función implementada en tu archivo predicciones.py
+from clima_api import get_weather_data  # Asegúrate de tener esta función implementada en tu archivo clima_api.py
 
 # Función para obtener la altitud (elevación) usando Open-Elevation API
 def get_elevation(lat, lon):
@@ -33,13 +34,13 @@ def main():
                 border-radius: 5px;
                 background-color: #ecf0f1;
             }
+            .input-field {
+                background-color: #d5dbdb;
+            }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown("<div class='main'>", unsafe_allow_html=True)
-
-    # Cargar los modelos de fertilidad y cultivo
-    fertilidad_model, cultivo_model = load_models()
 
     # Selección de cómo obtener los datos climáticos
     st.markdown("<div class='section-title'>Seleccione cómo desea obtener los datos climáticos</div>", unsafe_allow_html=True)
@@ -68,11 +69,33 @@ def main():
             elevation = get_elevation(lat, lon)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
 
+    elif weather_option == "Por ubicación actual":
+        # Obtener ubicación actual del usuario
+        st.write("Haz clic en el botón para obtener tu ubicación actual.")
+        if st.button("Obtener ubicación actual"):
+            location = st.text_input("Ubicación actual", value="No disponible")
+            st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
+            
+            # Simulamos una ubicación para este ejemplo:
+            #lat, lon = 20.0, 0.0  # Estos valores deberían ser obtenidos de la geolocalización real.
+            #weather_data = get_weather_data(lat, lon)
+            
+            # Verificar si la respuesta tiene los datos esperados
+            if 'temperature' in weather_data and 'humidity' in weather_data and 'wind_speed' in weather_data:
+                st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
+                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+            else:
+                st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
+            
+            # Obtener la altitud
+            elevation = get_elevation(lat, lon)
+            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+
     elif weather_option == "Manualmente":
         # Campos manuales
-        temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
+        #temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
         humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
-        wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+        #wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
 
     # Entradas de datos del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
@@ -83,31 +106,42 @@ def main():
     nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0)
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
+    #humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
     altitud = st.number_input("Altitud (metros)", min_value=0)
 
     # Recoger las variables del clima si están disponibles
-    temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
+    #temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
     humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
-    wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+    #wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+
+    # Cargar los modelos
+    fertilidad_model, cultivo_model = load_models()
 
     # Predicción
     if st.button("Predecir", key="predict_button"):
-        # Compilación de los datos para la predicción
-        input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, altitud, temperature, humidity, wind_speed]], 
-                                  columns=["tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", "fosforo", "potasio", "densidad", "altitud", "temperature", "humidity", "wind_speed"])
+        # Asegurarse de que el orden de las columnas sea correcto
+        input_data = pd.DataFrame([[
+            tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, 
+            potasio, humedad, densidad, altitud,
+        ]], columns=[
+            "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
+            "fosforo", "potasio", "humedad", "densidad", "altitud", 
+            "
+        ])
 
         # Hacer la predicción con los modelos cargados
         fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
 
         # Mostrar las predicciones
-        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]}</div>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
