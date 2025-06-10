@@ -89,7 +89,7 @@ def main():
 
     elif weather_option == "Manualmente":
         # Campos manuales
-        humedad_suelo = st.number_input("Humedad (%)", min_value=0, max_value=100)
+        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Entradas de datos del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
@@ -104,7 +104,7 @@ def main():
     altitud = st.number_input("Altitud (metros)", min_value=0)
 
     # Recoger la variable `humedad_suelo` que es la que ahora se usa
-    humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
+    humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
@@ -114,10 +114,10 @@ def main():
         # Asegurarse de que el orden de las columnas sea correcto
         input_data = pd.DataFrame([[
             tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, 
-            potasio, humedad_suelo, densidad, altitud,
+            potasio, humedad, densidad, altitud,
         ]], columns=[
             "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
-            "fosforo", "potasio", "humedad_suelo", "densidad", "altitud", 
+            "fosforo", "potasio", "humedad", "densidad", "altitud", 
         ])
 
         # Hacer la predicción con los modelos cargados
