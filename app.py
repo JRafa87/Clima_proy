@@ -3,7 +3,6 @@ import pandas as pd
 import requests
 from geopy.geocoders import Nominatim  # Importamos geopy
 
-
 # Función para obtener el nombre del lugar a partir de latitud y longitud
 def get_location_name(lat, lon):
     geolocator = Nominatim(user_agent="myGeocoder")
@@ -152,13 +151,19 @@ def main():
             potasio, humedad, densidad, altitud,
         ]], columns=[ 
             "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
+            "fosforo", "potasio", "humedad", "densidad", "altitud", 
+        ])
 
+        # Hacer la predicción con los modelos cargados
+        fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
 
+        # Mostrar las predicciones
+        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]}</div>", unsafe_allow_html=True)
 
+    st.markdown('</div>', unsafe_allow_html=True)
 
-
-
-
-
+if __name__ == "__main__":
+    main()
 
 
