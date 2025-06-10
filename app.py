@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
 import requests
-import xgboost as xgb
 from predicciones import load_models, predict_fertility_and_cultivo  # Asegúrate de tener esta función implementada en tu archivo predicciones.py
-from clima_api import get_weather_data  # Asegúrate de tener esta función implementada en tu archivo clima_api.py
+from clima_api import get_weather_data  # Asegúrate de que get_weather_data esté implementada correctamente
 
 # Función para obtener la altitud (elevación) usando Open-Elevation API
 def get_elevation(lat, lon):
@@ -56,18 +55,21 @@ def main():
 
         if st.button("Obtener clima", key="get_weather_button"):
             # Obtener los datos climáticos
-            weather_data = get_weather_data(lat, lon)
-            
-            # Verificar si la respuesta tiene los datos esperados (Temperatura y Humedad)
-            if 'temperature' in weather_data and 'humidity' in weather_data:
-                st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                            f"Humedad: {weather_data['humidity']}%</div>", unsafe_allow_html=True)
+            humidity = get_weather_data(lat, lon)  # Solo obtenemos la humedad
+
+            # Verificar si la humedad fue obtenida correctamente
+            if isinstance(humidity, int):  # Si la humedad es un valor entero, es correcta
+                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
             else:
-                st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
-            
+                st.error(f"Error: {humidity['error']}")  # Mostramos el error si no fue posible obtener la humedad
+
             # Obtener la altitud
             elevation = get_elevation(lat, lon)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+
+            # Obtener el nombre del lugar (opcional)
+            location_name = get_location_name(lat, lon)
+            st.markdown(f"<div class='info-box'>Ubicación: {location_name}</div>", unsafe_allow_html=True)
 
     elif weather_option == "Por ubicación actual":
         # Obtener ubicación actual del usuario
@@ -75,14 +77,14 @@ def main():
         if st.button("Obtener ubicación actual"):
             location = st.text_input("Ubicación actual", value="No disponible")
             st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
-            
-            # Verificar si la respuesta tiene los datos esperados
-            if 'temperature' in weather_data and 'humidity' in weather_data:
-                st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                            f"Humedad: {weather_data['humidity']}%</div>", unsafe_allow_html=True)
+
+            # Verificar si la humedad es válida
+            humidity = get_weather_data(lat, lon)
+            if isinstance(humidity, int):  # Si la humedad es un valor entero, es correcta
+                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
             else:
-                st.error("Error: No se pudieron obtener los datos climáticos. Verifique la respuesta de la API.")
-            
+                st.error(f"Error: {humidity['error']}")
+
             # Obtener la altitud
             elevation = get_elevation(lat, lon)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
@@ -112,10 +114,10 @@ def main():
     # Predicción
     if st.button("Predecir", key="predict_button"):
         # Asegurarse de que el orden de las columnas sea correcto
-        input_data = pd.DataFrame([[
+        input_data = pd.DataFrame([[ 
             tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, 
             potasio, humedad, densidad, altitud,
-        ]], columns=[
+        ]], columns=[ 
             "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
             "fosforo", "potasio", "humedad", "densidad", "altitud", 
         ])

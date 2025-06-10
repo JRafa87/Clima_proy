@@ -21,20 +21,13 @@ def get_weather_data(lat, lon):
         
         # Verificar si la respuesta es exitosa
         if response.status_code == 200:
-            # Extraer los datos relevantes
-            temperature = data['main']['temp']
+            # Extraer la humedad
             humidity = data['main']['humidity']
-            wind_speed = data['wind']['speed']
             
-            # Crear un diccionario con los datos
-            weather_data = {
-                'temperature': temperature,
-                'humidity': humidity,
-                'wind_speed': wind_speed
-            }
-            return weather_data
+            return humidity  # Retornar solo la humedad
         else:
             return {'error': f"Error en la solicitud: {data['message']}"}
     except Exception as e:
         return {'error': f"Error al obtener los datos: {str(e)}"}
+
 
