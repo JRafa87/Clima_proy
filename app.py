@@ -67,7 +67,7 @@ def main():
         map_response = st_folium(folium_map, width=700, height=500)
 
         # Verificar si se seleccionó una ubicación en el mapa
-        if map_response is not None:
+        if map_response and "lat" in map_response and "lon" in map_response:
             lat = map_response['lat']
             lon = map_response['lon']
             st.write(f"Ubicación seleccionada: Latitud {lat}, Longitud {lon}")
