@@ -42,9 +42,20 @@ def get_weather_data(lat, lon):
 # Función para obtener la altitud (elevación) usando Open-Elevation API
 def get_elevation(lat, lon):
     url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
-    response = requests.get(url)
-    data = response.json()
-    return data['results'][0]['elevation']
+    try:
+        response = requests.get(url)
+        response.raise_for_status() # Lanza una excepción para errores HTTP
+        data = response.json()
+        if data and 'results' in data and len(data['results']) > 0:
+            return data['results'][0]['elevation']
+        else:
+            return None # O manejar como un error
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error al obtener la altitud: {e}. Asegúrate de que la API de Open-Elevation esté accesible.")
+        return None
+    except Exception as e:
+        st.error(f"Error inesperado al obtener la altitud: {e}")
+        return None
 
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
@@ -75,95 +86,144 @@ def main():
 
     st.markdown("<div class='main'>", unsafe_allow_html=True)
 
+    # Inicializar variables de estado para mantener los valores
+    # Esto asegura que los valores persistan entre las ejecuciones de Streamlit
+    if 'humidity_display' not in st.session_state:
+        st.session_state.humidity_display = 0.0
+    if 'elevation_display' not in st.session_state:
+        st.session_state.elevation_display = 0.0
+    if 'location_name_display' not in st.session_state:
+        st.session_state.location_name_display = "No obtenida"
+
     # Selección de cómo obtener los datos climáticos
     st.markdown("<div class='section-title'>Seleccione cómo desea obtener los datos climáticos</div>", unsafe_allow_html=True)
     weather_option = st.radio("¿Cómo deseas obtener los datos del clima?", 
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
-    # Variables para humedad y altitud
-    humidity = None
-    elevation = None
-    location_name = None
-    lat, lon = None, None
+    # Variables que se usarán en la predicción
+    # Se inicializan con los valores de session_state para mantener la persistencia
+    humidity_for_prediction = st.session_state.humidity_display
+    elevation_for_prediction = st.session_state.elevation_display
+    
+    # Esta variable se usa para mostrar el nombre de la ubicación
+    location_name_for_display = st.session_state.location_name_display
 
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
-            lat = st.number_input("Latitud", value=0.0)
+            lat = st.number_input("Latitud", value=0.0, format="%.6f", key="lat_coord")
         with col2:
-            lon = st.number_input("Longitud", value=0.0)
+            lon = st.number_input("Longitud", value=0.0, format="%.6f", key="lon_coord")
 
-        if st.button("Obtener clima", key="get_weather_button"):
+        if st.button("Obtener clima y altitud", key="get_weather_button_coords"):
             # Obtener los datos climáticos
-            humidity = get_weather_data(lat, lon)  # Solo obtenemos la humedad
-
-            if isinstance(humidity, int):
-                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
+            humidity_data = get_weather_data(lat, lon)
+            if isinstance(humidity_data, int):
+                st.session_state.humidity_display = float(humidity_data)
+                humidity_for_prediction = float(humidity_data) # Actualizar para la predicción
+                st.markdown(f"<div class='info-box'>Humedad: {st.session_state.humidity_display}%</div>", unsafe_allow_html=True)
             else:
-                st.error(f"Error: {humidity['error']}")  # Mostrar mensaje de error si no fue posible obtener la humedad
+                st.error(f"Error al obtener humedad: {humidity_data['error']}")
+                st.session_state.humidity_display = 0.0 # Reiniciar a 0.0 si hay un error
 
             # Obtener la altitud
-            elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            elevation_data = get_elevation(lat, lon)
+            if elevation_data is not None:
+                st.session_state.elevation_display = float(elevation_data)
+                elevation_for_prediction = float(elevation_data) # Actualizar para la predicción
+                st.markdown(f"<div class='info-box'>Altitud: {st.session_state.elevation_display} metros</div>", unsafe_allow_html=True)
+            else:
+                st.session_state.elevation_display = 0.0 # Reiniciar a 0.0 si hay un error
 
-            # Obtener el nombre del lugar (opcional)
-            location_name = get_location_name(lat, lon)
-            st.markdown(f"<div class='info-box'>Ubicación: {location_name}</div>", unsafe_allow_html=True)
+            # Obtener el nombre del lugar
+            st.session_state.location_name_display = get_location_name(lat, lon)
+            location_name_for_display = st.session_state.location_name_display
+            st.markdown(f"<div class='info-box'>Ubicación: {st.session_state.location_name_display}</div>", unsafe_allow_html=True)
 
     elif weather_option == "Por ubicación actual":
-        st.write("Haz clic en el botón para obtener tu ubicación actual.")
-        if st.button("Obtener ubicación actual"):
-            lat, lon = 19.432608, -99.133209  # Ejemplo de latitud y longitud de Ciudad de México
-            location_name = "Ciudad de México"
-            st.write(f"Ubicación: {location_name}")
-
+        st.write("Haz clic en el botón para obtener tu ubicación actual (ejemplo de Ciudad de México).")
+        if st.button("Obtener ubicación actual", key="get_current_location_button"):
+            # Ejemplo de latitud y longitud de Ciudad de México
+            lat, lon = 19.432608, -99.133209 
+            
             # Obtener la humedad y altitud para esta ubicación
-            humidity = get_weather_data(lat, lon)
-            if isinstance(humidity, int):
-                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
+            humidity_data = get_weather_data(lat, lon)
+            if isinstance(humidity_data, int):
+                st.session_state.humidity_display = float(humidity_data)
+                humidity_for_prediction = float(humidity_data) # Actualizar para la predicción
+                st.markdown(f"<div class='info-box'>Humedad: {st.session_state.humidity_display}%</div>", unsafe_allow_html=True)
             else:
-                st.error(f"Error: {humidity['error']}")
+                st.error(f"Error al obtener humedad: {humidity_data['error']}")
+                st.session_state.humidity_display = 0.0
 
-            elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            elevation_data = get_elevation(lat, lon)
+            if elevation_data is not None:
+                st.session_state.elevation_display = float(elevation_data)
+                elevation_for_prediction = float(elevation_data) # Actualizar para la predicción
+                st.markdown(f"<div class='info-box'>Altitud: {st.session_state.elevation_display} metros</div>", unsafe_allow_html=True)
+            else:
+                st.session_state.elevation_display = 0.0
 
-    elif weather_option == "Manualmente":
-        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
+            st.session_state.location_name_display = get_location_name(lat, lon)
+            location_name_for_display = st.session_state.location_name_display
+            st.markdown(f"<div class='info-box'>Ubicación: {st.session_state.location_name_display}</div>", unsafe_allow_html=True)
+    
+    # Mostrar el nombre de la ubicación actual (persiste)
+    st.markdown(f"<div class='info-box'>Última Ubicación Obtenida: {st.session_state.location_name_display}</div>", unsafe_allow_html=True)
+
+    # Entradas de humedad y altitud que se muestran al usuario
+    # y también se usan para la predicción.
+    # Se usan `disabled=True` si la opción no es "Manualmente"
+    if weather_option == "Manualmente":
+        # Permite al usuario introducir manualmente la humedad y altitud
+        humidity_for_prediction = st.number_input("Humedad (%)", min_value=0, max_value=100, value=st.session_state.humidity_display, key="manual_hum")
+        elevation_for_prediction = st.number_input("Altitud (metros)", min_value=0, value=st.session_state.elevation_display, key="manual_alt")
+        # Actualizar session_state con los valores manuales para que persistan
+        st.session_state.humidity_display = humidity_for_prediction
+        st.session_state.elevation_display = elevation_for_prediction
+    else:
+        # Para "Por coordenadas" y "Por ubicación actual", los campos están deshabilitados
+        # y muestran los valores obtenidos de la API (guardados en session_state)
+        st.number_input("Humedad (%)", min_value=0, max_value=100, value=st.session_state.humidity_display, disabled=True, key="display_hum")
+        st.number_input("Altitud (metros)", min_value=0, value=st.session_state.elevation_display, disabled=True, key="display_alt")
+        # Las variables humidity_for_prediction y elevation_for_prediction ya tienen los valores correctos de session_state
+        # al inicio del main() para estas opciones.
+
 
     # Datos del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
     tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4], key="tipo_suelo")
-    pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, key="ph")
-    materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, max_value=100.0)
-    conductividad = st.number_input("Conductividad (mS/cm)", min_value=0.0)
-    nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0)
+    pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, format="%.2f", key="ph")
+    materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, max_value=100.0, format="%.2f")
+    conductividad = st.number_input("Conductividad (mS/cm)", min_value=0.0, format="%.2f")
+    nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0, format="%.2f")
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
-    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
-
-    # Validar y ajustar los valores
-    def get_numeric_value(value, default=0):
-        return value if isinstance(value, (int, float)) else default
-
-    elevation_value = get_numeric_value(elevation, 0)
-    humidity_value = get_numeric_value(humidity, 0)
-
-    # Asegúrate de que los valores no desaparezcan al realizar la predicción
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
-    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
+    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0, format="%.2f")
 
     # Cargar los modelos
-    fertilidad_model, cultivo_model = load_models()
+    # NOTA: Asegúrate de que 'predicciones.py' existe y contiene load_models y predict_fertility_and_cultivo
+    try:
+        fertilidad_model, cultivo_model = load_models()
+    except Exception as e:
+        st.error(f"Error al cargar los modelos: {e}. Asegúrate de que 'predicciones.py' y los archivos de modelo existen y son accesibles.")
+        fertilidad_model, cultivo_model = None, None
+
 
     # Predicción
     if st.button("Predecir", key="predict_button"):
         if fertilidad_model and cultivo_model:
             # Asegúrate de que el orden de las columnas sea correcto
-            input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, humedad, altitud]],
+            input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, humidity_for_prediction, elevation_for_prediction]],
                                       columns=["tipo_suelo", "ph", "materia_organica", "conductividad", "nitrogeno", "fosforo", "potasio", "densidad", "humedad", "altitud"])
+            
+            # Debugging: imprimir datos de entrada antes de la predicción
+            st.write("Datos de entrada para la predicción:")
+            st.write(input_data)
+
             fertility, predicted_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
-            st.write(f"Fertilidad del suelo: {fertility}")
-            st.write(f"Cultivo recomendado: {predicted_cultivo}")
+            st.success(f"Fertilidad del suelo: {fertility}")
+            st.success(f"Cultivo recomendado: {predicted_cultivo}")
         else:
             st.error("Los modelos no se han cargado correctamente. Verifica las rutas o archivos.")
 
