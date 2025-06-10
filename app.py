@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from geopy.geocoders import Nominatim  # Importamos geopy
-from predicciones import load_models
+from predicciones import load_models, predict_fertility_and_cultivo
 
 # Función para obtener el nombre del lugar a partir de latitud y longitud
 def get_location_name(lat, lon):
@@ -182,6 +182,10 @@ def main():
         st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction}</div>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
+
 
 
 
