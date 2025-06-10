@@ -26,10 +26,15 @@ def get_weather_data(lat, lon):
             humidity = data['main']['humidity']
             wind_speed = data['wind']['speed']
             
-            # Crear una cadena de texto con los datos
-            weather_data = f"Temperatura: {temperature}°C, Humedad: {humidity}%, Viento: {wind_speed} m/s"
+            # Crear un diccionario con los datos
+            weather_data = {
+                'temperature': temperature,
+                'humidity': humidity,
+                'wind_speed': wind_speed
+            }
             return weather_data
         else:
-            return f"Error en la solicitud: {data['message']}"
+            return {'error': f"Error en la solicitud: {data['message']}"}
     except Exception as e:
-        return f"Error al obtener los datos: {str(e)}"
+        return {'error': f"Error al obtener los datos: {str(e)}"}
+
