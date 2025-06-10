@@ -88,6 +88,11 @@ def main():
     weather_option = st.radio("¿Cómo deseas obtener los datos del clima?", 
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
+    # Variables para humedad y altitud
+    humidity = None
+    elevation = None
+    location_name = None
+
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
@@ -114,11 +119,11 @@ def main():
             st.markdown(f"<div class='info-box'>Ubicación: {location_name}</div>", unsafe_allow_html=True)
 
     elif weather_option == "Por ubicación actual":
-        # Obtener ubicación actual del usuario
+        # Aquí podrías integrar un método para obtener la ubicación real del usuario.
         st.write("Haz clic en el botón para obtener tu ubicación actual.")
         if st.button("Obtener ubicación actual"):
-            location = st.text_input("Ubicación actual", value="No disponible")
-            st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
+            location_name = "Ubicación desconocida"  # Asegúrate de actualizarlo cuando implementes el código real.
+            st.write(f"Ubicación: {location_name}")
 
             # Verificar si la humedad es válida
             humidity = get_weather_data(lat, lon)
@@ -132,7 +137,7 @@ def main():
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
 
     elif weather_option == "Manualmente":
-        # Campos manuales
+        # Si elige "Manualmente", no se usan los valores de humedad ni altitud obtenidos automáticamente.
         humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Entradas de datos del suelo
@@ -147,8 +152,13 @@ def main():
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
     altitud = st.number_input("Altitud (metros)", min_value=0)
 
-    # Recoger la variable `humedad_suelo` que es la que ahora se usa
-    humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
+    # Si la humedad no fue capturada antes, la pedimos aquí
+    if humidity is None:
+        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
+
+    # Si la altitud no fue capturada antes, la pedimos aquí
+    if elevation is None:
+        altitud = st.number_input("Altitud (metros)", min_value=0)
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
@@ -168,12 +178,10 @@ def main():
         fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
 
         # Mostrar las predicciones
-        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction}</div>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-if __name__ == "__main__":
-    main()
 
 
