@@ -5,3 +5,4 @@ xgboost
 streamlit-folium
 scikit-learn
 geopy
+joblib
