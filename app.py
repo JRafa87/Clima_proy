@@ -152,10 +152,19 @@ def main():
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
     
-    # Si ya se capturó la humedad y la altitud, prellenamos esos campos
-    humedad = st.number_input("Humedad (%)", value=humidity if humidity else 0, min_value=0, max_value=100)
-    # Asegúrate de que elevation tenga un valor numérico válido
-    elevation_value = elevation if isinstance(elevation, (int, float)) else 0
+    # Función para asegurarse de que los valores sean numéricos
+def get_numeric_value(value, default=0):
+    return value if isinstance(value, (int, float)) else default
+
+# Dentro de la función main:
+# Validamos los valores de elevation y humidity antes de pasarlos al number_input
+    elevation_value = get_numeric_value(elevation, 0)
+    humidity_value = get_numeric_value(humidity, 0)
+
+# Ahora pasamos los valores validados a number_input
+    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
+    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
+ 
 
     # Usar el valor adecuado en number_input
     altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
