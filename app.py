@@ -156,7 +156,7 @@ def main():
     def get_numeric_value(value, default=0):
         return value if isinstance(value, (int, float)) else default
 
-    # Validamos los valores de elevation y humidity antes de pasarlos al number_input
+    # Aseguramos que los valores de elevation y humidity sean numéricos
     elevation_value = get_numeric_value(elevation, 0)
     humidity_value = get_numeric_value(humidity, 0)
 
@@ -180,6 +180,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
