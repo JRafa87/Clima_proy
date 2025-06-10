@@ -44,7 +44,6 @@ def get_weather_data(lat, lon):
     except Exception as e:
         return {'error': f"Error al obtener los datos: {str(e)}"}
 
-
 # Función para obtener la altitud (elevación) usando Open-Elevation API
 def get_elevation(lat, lon):
     url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
@@ -92,6 +91,7 @@ def main():
     humidity = None
     elevation = None
     location_name = None
+    lat, lon = None, None
 
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
@@ -122,17 +122,18 @@ def main():
         # Aquí podrías integrar un método para obtener la ubicación real del usuario.
         st.write("Haz clic en el botón para obtener tu ubicación actual.")
         if st.button("Obtener ubicación actual"):
-            location_name = "Ubicación desconocida"  # Asegúrate de actualizarlo cuando implementes el código real.
+            # Simulación de latitud y longitud (esto se debe reemplazar por la API real)
+            lat, lon = 19.432608, -99.133209  # Ejemplo de latitud y longitud de Ciudad de México
+            location_name = "Ciudad de México"  # Ejemplo
             st.write(f"Ubicación: {location_name}")
 
-            # Verificar si la humedad es válida
+            # Obtener la humedad y altitud para esta ubicación
             humidity = get_weather_data(lat, lon)
-            if isinstance(humidity, int):  # Si la humedad es un valor entero, es correcta
+            if isinstance(humidity, int):
                 st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
             else:
                 st.error(f"Error: {humidity['error']}")
 
-            # Obtener la altitud
             elevation = get_elevation(lat, lon)
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
 
@@ -150,15 +151,10 @@ def main():
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
-    altitud = st.number_input("Altitud (metros)", min_value=0)
-
-    # Si la humedad no fue capturada antes, la pedimos aquí
-    if humidity is None:
-        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
-
-    # Si la altitud no fue capturada antes, la pedimos aquí
-    if elevation is None:
-        altitud = st.number_input("Altitud (metros)", min_value=0)
+    
+    # Si ya se capturó la humedad y la altitud, prellenamos esos campos
+    humedad = st.number_input("Humedad (%)", value=humidity if humidity else 0, min_value=0, max_value=100)
+    altitud = st.number_input("Altitud (metros)", value=elevation if elevation else 0, min_value=0)
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
@@ -166,25 +162,17 @@ def main():
     # Predicción
     if st.button("Predecir", key="predict_button"):
         # Asegurarse de que el orden de las columnas sea correcto
-        input_data = pd.DataFrame([[ 
-            tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, 
-            potasio, humedad, densidad, altitud,
-        ]], columns=[ 
-            "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", 
-            "fosforo", "potasio", "humedad", "densidad", "altitud", 
-        ])
+        input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, humedad, altitud]],
+                                  columns=["tipo_suelo", "ph", "materia_organica", "conductividad", "nitrogeno", "fosforo", "potasio", "densidad", "humedad", "altitud"])
+        fertility, predicted_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
+        st.write(f"Fertilidad del suelo: {fertility}")
+        st.write(f"Cultivo recomendado: {predicted_cultivo}")
 
-        # Hacer la predicción con los modelos cargados
-        fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
-
-        # Mostrar las predicciones
-        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction}</div>", unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
