@@ -7,15 +7,18 @@ def get_user_location():
     js_code = """
     <script>
     if ("geolocation" in navigator) {
+        // Solicitar la ubicación
         navigator.geolocation.getCurrentPosition(function(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             const data = { "lat": lat, "lon": lon };
             const jsonData = JSON.stringify(data);
             window.parent.postMessage({ type: 'geolocation', data: jsonData }, "*");
+        }, function(error) {
+            window.parent.postMessage({ type: 'error', data: 'No se pudo obtener la ubicación.' }, "*");
         });
     } else {
-        window.parent.postMessage({ type: 'error', data: 'Geolocation is not supported' }, "*");
+        window.parent.postMessage({ type: 'error', data: 'Geolocalización no soportada.' }, "*");
     }
     </script>
     """
@@ -62,7 +65,7 @@ def main():
     # Obtener ubicación actual del usuario
     if weather_option == "Por ubicación actual":
         # Pedir permiso para geolocalización
-        st.write("Estamos obteniendo tu ubicación... Permite el acceso a tu geolocalización en el navegador.")
+        st.write("Por favor, permite el acceso a tu geolocalización para obtener tu ubicación y el clima.")
         get_user_location()
 
         # Aquí esperaríamos obtener los datos de la ubicación
@@ -77,7 +80,7 @@ def main():
             weather_data = get_weather_data(lat, lon)
             st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
         else:
-            st.write("No se pudo obtener la ubicación.")
+            st.write("No se pudo obtener la ubicación. Asegúrate de haber permitido el acceso a tu ubicación.")
 
     elif weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
@@ -120,4 +123,5 @@ def predict_fertility_and_cultivo(input_data):
 
 if __name__ == "__main__":
     main()
+
 
