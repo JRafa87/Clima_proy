@@ -1,28 +1,7 @@
+
 import streamlit as st
 import pandas as pd
 from clima_api import get_weather_data  # Función para consultar el clima
-
-# Función para obtener la ubicación del navegador usando JS
-def get_user_location():
-    js_code = """
-    <script>
-    if ("geolocation" in navigator) {
-        // Solicitar la ubicación
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const data = { "lat": lat, "lon": lon };
-            const jsonData = JSON.stringify(data);
-            window.parent.postMessage({ type: 'geolocation', data: jsonData }, "*");
-        }, function(error) {
-            window.parent.postMessage({ type: 'error', data: 'No se pudo obtener la ubicación.' }, "*");
-        });
-    } else {
-        window.parent.postMessage({ type: 'error', data: 'Geolocalización no soportada.' }, "*");
-    }
-    </script>
-    """
-    st.markdown(js_code, unsafe_allow_html=True)
 
 # Función principal para la interfaz
 def main():
@@ -83,14 +62,18 @@ def main():
             
             # Obtener los datos del clima con la ubicación seleccionada
             weather_data = get_weather_data(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
             
-            # Asignar los datos climáticos obtenidos
-            temperature = weather_data.get('temperature', None)
-            humidity = weather_data.get('humidity', None)
-            wind_speed = weather_data.get('wind_speed', None)
-        else:
-            st.write("No se pudo obtener la ubicación. Asegúrate de haber permitido el acceso a tu ubicación.")
+            # Ahora procesamos los datos para extraer la información relevante
+            try:
+                # Asumimos que weather_data es un string, vamos a parsearlo como JSON o texto
+                weather_data_dict = parse_weather_data(weather_data)
+                temperature = weather_data_dict.get('temperature', None)
+                humidity = weather_data_dict.get('humidity', None)
+                wind_speed = weather_data_dict.get('wind_speed', None)
+
+                st.markdown(f"<div class='info-box'>Datos del clima: {weather_data_dict}</div>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error al procesar los datos del clima: {e}")
 
     elif weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
@@ -101,12 +84,17 @@ def main():
 
         if st.button("Obtener clima", key="get_weather_button"):
             weather_data = get_weather_data(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: {weather_data}</div>", unsafe_allow_html=True)
             
-            # Asignar los datos climáticos obtenidos
-            temperature = weather_data.get('temperature', None)
-            humidity = weather_data.get('humidity', None)
-            wind_speed = weather_data.get('wind_speed', None)
+            # Procesamos el resultado del clima
+            try:
+                weather_data_dict = parse_weather_data(weather_data)
+                temperature = weather_data_dict.get('temperature', None)
+                humidity = weather_data_dict.get('humidity', None)
+                wind_speed = weather_data_dict.get('wind_speed', None)
+
+                st.markdown(f"<div class='info-box'>Datos del clima: {weather_data_dict}</div>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error al procesar los datos del clima: {e}")
 
     elif weather_option == "Manualmente":
         st.markdown("<div class='section-title'>Ingrese los datos climáticos manualmente</div>", unsafe_allow_html=True)
@@ -134,6 +122,27 @@ def main():
         st.warning("Por favor, asegúrate de tener los datos climáticos completos antes de predecir.")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+# Función para parsear los datos del clima (esto debe ser ajustado según el formato real)
+def parse_weather_data(weather_data):
+    # Supongo que weather_data es un string en formato de texto. 
+    # Si es JSON o algo diferente, ajusta esta función.
+    weather_dict = {}
+    
+    # Ejemplo de parsing si weather_data es un string como "Temperatura: 21.61°C, Humedad: 76%, Viento: 6.17 m/s"
+    try:
+        parts = weather_data.split(',')
+        for part in parts:
+            if 'Temperatura' in part:
+                weather_dict['temperature'] = float(part.split(':')[1].replace('°C', '').strip())
+            elif 'Humedad' in part:
+                weather_dict['humidity'] = int(part.split(':')[1].replace('%', '').strip())
+            elif 'Viento' in part:
+                weather_dict['wind_speed'] = float(part.split(':')[1].replace('m/s', '').strip())
+    except Exception as e:
+        raise ValueError(f"Error al parsear los datos del clima: {e}")
+    
+    return weather_dict
 
 # Predicción usando los modelos entrenados (esto se debe ajustar a tus modelos)
 def predict_fertility_and_cultivo(input_data):
