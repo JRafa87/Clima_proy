@@ -151,7 +151,7 @@ def main():
     nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0)
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
-    humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
+    #humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
     altitud = st.number_input("Altitud (metros)", min_value=0)
 
