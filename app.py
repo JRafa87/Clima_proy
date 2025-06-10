@@ -151,24 +151,18 @@ def main():
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
-    
-    # Función para asegurarse de que los valores sean numéricos
-def get_numeric_value(value, default=0):
-    return value if isinstance(value, (int, float)) else default
 
-# Dentro de la función main:
-# Validamos los valores de elevation y humidity antes de pasarlos al number_input
+    # Función para asegurarse de que los valores sean numéricos
+    def get_numeric_value(value, default=0):
+        return value if isinstance(value, (int, float)) else default
+
+    # Validamos los valores de elevation y humidity antes de pasarlos al number_input
     elevation_value = get_numeric_value(elevation, 0)
     humidity_value = get_numeric_value(humidity, 0)
 
-# Ahora pasamos los valores validados a number_input
+    # Ahora pasamos los valores validados a number_input
     altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
     humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
- 
-
-    # Usar el valor adecuado en number_input
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
-
 
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
@@ -186,6 +180,7 @@ def get_numeric_value(value, default=0):
 
 if __name__ == "__main__":
     main()
+
 
 
 
