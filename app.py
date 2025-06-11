@@ -1,99 +1,85 @@
 import streamlit as st
+import joblib
+import numpy as np
+import xgboost as xgb
 import requests
 from geopy.geocoders import Nominatim
-from predicciones import load_models, predict_fertility_and_cultivo
 
-# Función para obtener el nombre del lugar a partir de latitud y longitud
-def get_location_name(lat, lon):
-    geolocator = Nominatim(user_agent="myGeocoder")
-    location = geolocator.reverse((lat, lon), language='es', timeout=10)
+
+# Función para cargar los modelos
+def load_models():
+    try:
+        # Cargar los modelos desde las rutas proporcionadas
+        fertilidad_model = joblib.load("fertilidad_model.json")  # Asegúrate de colocar la ruta correcta
+        cultivo_model = joblib.load("cultivo_model.json")  # Asegúrate de colocar la ruta correcta
+        return fertilidad_model, cultivo_model
+    except FileNotFoundError as e:
+        print(f"Error: No se pudo encontrar uno de los archivos de modelo. {str(e)}")
+        return None, None
+    except Exception as e:
+        print(f"Error al cargar los modelos: {str(e)}")
+        return None, None
+
+
+# Función para predecir fertilidad y cultivo
+def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
+    # Verificar si los modelos se cargaron correctamente
+    if fertilidad_model is None or cultivo_model is None:
+        raise ValueError("Los modelos no se cargaron correctamente. Verifica los archivos.")
     
-    if location:
-        return location.address  # Retorna la dirección completa (nombre del lugar)
-    else:
-        return "Ubicación desconocida"  # Si no se puede obtener el nombre
+    try:
+        # Convertir input_data a un formato adecuado para XGBoost (DMatrix o np.array)
+        input_array = np.array(input_data).reshape(1, -1)  # Asegurarse de que sea un array 2D (una muestra)
+        input_dmatrix = xgb.DMatrix(input_array)
 
-# Función para obtener los datos del clima
+        # Predicción de fertilidad
+        fertilidad = int(fertilidad_model.predict(input_dmatrix)[0])  # Asegúrate de que el índice es correcto
+        predicted_fertilidad = "Fértil" if fertilidad == 1 else "Infértil"
+        
+        # Predicción del cultivo basado en la fertilidad
+        predicted_cultivo = "Ninguno"
+        if fertilidad == 1:
+            cultivo = int(cultivo_model.predict(input_dmatrix)[0])
+            # Lista de cultivos posibles, en función del modelo de cultivo
+            cultivos = [
+                "Trigo", "Maíz", "Caña de Azúcar", "Algodón", "Arroz", "Papa",
+                "Cebolla", "Tomate", "Batata", "Brócoli", "Café"
+            ]
+            predicted_cultivo = cultivos[cultivo] if cultivo < len(cultivos) else "Desconocido"
+        
+        return predicted_fertilidad, predicted_cultivo
+    except Exception as e:
+        print(f"Error en la predicción: {str(e)}")
+        return "Error en la predicción", "Error en la predicción"
+
+
+# Función para obtener los datos climáticos y la ubicación
 def get_weather_data(lat, lon):
     api_key = "f75c529787e26621bbd744dd67c056b0"  # Reemplaza con tu propia API Key de OpenWeather
     base_url = "https://api.openweathermap.org/data/2.5/weather"
     
-    # Parámetros para la consulta
     params = {
         "lat": lat,
         "lon": lon,
         "appid": api_key,
-        "units": "metric",  # Para obtener la temperatura en grados Celsius
-        "lang": "es"  # Respuesta en español
+        "units": "metric",
+        "lang": "es"
     }
-    
+
     try:
-        # Hacer la solicitud GET
         response = requests.get(base_url, params=params)
         data = response.json()
-        
-        # Verificar si la respuesta es exitosa
         if response.status_code == 200:
-            # Extraer la humedad
-            humidity = data['main']['humidity']
-            return humidity  # Retornar solo la humedad
+            return data['main']['humidity']  # Solo retornar la humedad
         else:
-            return {'error': f"Error en la solicitud: {data['message']}"}
+            return {'error': f"Error: {data['message']}"}
     except Exception as e:
         return {'error': f"Error al obtener los datos: {str(e)}"}
 
-# Función para obtener la altitud (elevación) usando Open-Elevation API
-def get_elevation(lat, lon):
-    url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
-    response = requests.get(url)
-    data = response.json()
-    return data['results'][0]['elevation']  # Retorna la altitud en metros
-
-# Función para asegurarse de que los valores sean numéricos
-def get_numeric_value(value, default=0.0):
-    try:
-        # Eliminar texto no numérico (como " metros") y convertir a float
-        if isinstance(value, str):
-            value = ''.join(filter(str.isdigit, value))  # Extraer solo los dígitos
-        return float(value)
-    except (ValueError, TypeError):
-        return default  # Si no se puede convertir, devolver el valor por defecto
 
 def main():
-    # Usar session_state para guardar datos
-    if 'humidity' not in st.session_state:
-        st.session_state['humidity'] = 0.0
-    if 'elevation' not in st.session_state:
-        st.session_state['elevation'] = 0.0
-    if 'location_name' not in st.session_state:
-        st.session_state['location_name'] = ""
-    
-    # Título de la app
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
-    st.markdown("""
-        <style>
-            .main { 
-                background-color: #f0f4f8; 
-                padding: 20px; 
-                border-radius: 10px;
-            }
-            h1 {
-                color: #2C3E50;
-            }
-            .section-title {
-                font-size: 1.5em;
-                color: #3498DB;
-            }
-            .info-box {
-                padding: 10px;
-                border-radius: 5px;
-                background-color: #ecf0f1;
-            }
-            .input-field {
-                background-color: #d5dbdb;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("""<style> /* estilos aquí */ </style>""", unsafe_allow_html=True)
 
     st.markdown("<div class='main'>", unsafe_allow_html=True)
 
@@ -103,9 +89,11 @@ def main():
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
     # Variables para humedad y altitud
+    humidity = 0.0
+    elevation = 0.0
+    location_name = None
     lat, lon = None, None
-    location_name = st.session_state['location_name']
-    
+
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
@@ -114,53 +102,35 @@ def main():
             lon = st.number_input("Longitud", value=0.0)
 
         if st.button("Obtener clima", key="get_weather_button"):
-            # Obtener los datos climáticos
-            humidity = get_weather_data(lat, lon)  # Solo obtenemos la humedad
-
-            # Verificar si la humedad fue obtenida correctamente
-            if isinstance(humidity, int):  # Si la humedad es un valor entero, es correcta
-                st.session_state['humidity'] = humidity
-                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
+            humidity = get_weather_data(lat, lon)
+            if isinstance(humidity, int):  # Verificar que la humedad sea correcta
+                st.markdown(f"Humedad: {humidity}%")
             else:
-                st.error(f"Error: {humidity['error']}")  # Mostramos el error si no fue posible obtener la humedad
+                st.error(f"Error: {humidity['error']}")
 
-            # Obtener la altitud
-            elevation = get_elevation(lat, lon)
-            st.session_state['elevation'] = elevation
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)  # Solo el valor numérico
-
-            # Obtener el nombre del lugar (opcional)
-            location_name = get_location_name(lat, lon)
-            st.session_state['location_name'] = location_name
-            st.markdown(f"<div class='info-box'>Ubicación: {location_name}</div>", unsafe_allow_html=True)
+            # Obtener altitud (simulación)
+            elevation = 1000  # Por ejemplo
+            st.markdown(f"Altitud: {elevation} metros")
+            location_name = "Ubicación desconocida"  # Reemplazar por la ubicación real si es necesario
 
     elif weather_option == "Por ubicación actual":
         st.write("Haz clic en el botón para obtener tu ubicación actual.")
         if st.button("Obtener ubicación actual"):
-            # Simulación de latitud y longitud (esto se debe reemplazar por la API real)
-            lat, lon = 19.432608, -99.133209  # Ejemplo de latitud y longitud de Ciudad de México
-            location_name = "Ciudad de México"  # Ejemplo
-            st.session_state['location_name'] = location_name
+            lat, lon = 19.432608, -99.133209  # Ejemplo: Ciudad de México
+            location_name = "Ciudad de México"
             st.write(f"Ubicación: {location_name}")
-
-            # Obtener la humedad y altitud para esta ubicación
             humidity = get_weather_data(lat, lon)
             if isinstance(humidity, int):
-                st.session_state['humidity'] = humidity
-                st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
+                st.markdown(f"Humedad: {humidity}%")
             else:
                 st.error(f"Error: {humidity['error']}")
-
-            elevation = get_elevation(lat, lon)
-            st.session_state['elevation'] = elevation
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)  # Solo el valor numérico
+            elevation = 1000  # Simulación
+            st.markdown(f"Altitud: {elevation} metros")
 
     elif weather_option == "Manualmente":
-        # Si elige "Manualmente", no se usan los valores de humedad ni altitud obtenidos automáticamente.
-        st.session_state['humidity'] = st.number_input("Humedad (%)", min_value=0, max_value=100)
+        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Entradas de datos del suelo
-    st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
     tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4], key="tipo_suelo")
     pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, key="ph")
     materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, max_value=100.0)
@@ -169,26 +139,24 @@ def main():
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
+    altitud = st.number_input("Altitud (metros)", value=elevation, min_value=0.0)
+    humedad = st.number_input("Humedad (%)", value=humidity, min_value=0.0, max_value=100.0)
 
-    # Validación y ajuste de valores numéricos
-    elevation_value = get_numeric_value(st.session_state['elevation'], 0.0)  # Asegura que la altitud es un número flotante
-    humidity_value = get_numeric_value(st.session_state['humidity'], 0.0)  # Asegura que la humedad es un número flotante
-
-    # Ahora pasamos los valores validados a number_input
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
-    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
-
-    # Botón para realizar la predicción
+    # Realizar la predicción
     if st.button("Realizar predicción"):
+        # Cargar los modelos
         fertilidad_model, cultivo_model = load_models()
-        if fertilidad_model is not None and cultivo_model is not None:
-            # Capturar los datos y hacer la predicción
-            st.write("Realizando la predicción...")
-            pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
-                fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
-            )
+        if fertilidad_model and cultivo_model:
+            # Prepara los datos para la predicción
+            input_data = [
+                tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, humedad, altitud
+            ]
+            # Realizar la predicción
+            pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
             st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
             st.write(f"Predicción de Cultivo: {pred_cultivo}")
+        else:
+            st.error("No se pudieron cargar los modelos de predicción.")
 
     # Botón para borrar datos
     if st.button("Borrar todos los datos"):
@@ -196,8 +164,10 @@ def main():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
 if __name__ == "__main__":
     main()
+
 
 
 
