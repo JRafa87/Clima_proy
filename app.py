@@ -127,8 +127,9 @@ def main():
         fert_model, cult_model = load_models()
         fert_pred, cult_pred = predict_fertility_and_cultivo(input_data, fert_model, cult_model)
 
-        st.success(f"🌱 Fertilidad estimada: {fert_pred[0]:.2f}")
-        st.success(f"🌾 Cultivo recomendado (ID): {int(cult_pred[0])}")
+        st.success(f"🌱 Fertilidad estimada: {fert_pred[0]}")
+        st.success(f"🌾 Cultivo recomendado: {cult_pred[0]}")
+
 
 if __name__ == "__main__":
     main()
