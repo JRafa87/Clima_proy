@@ -84,7 +84,7 @@ def main():
     st.markdown("### Datos del suelo:")
 
     tipo_suelo = st.number_input("Tipo de suelo (número)", min_value=0, max_value=10, step=1)
-    ph = st.number_input("pH", min_value=0.0, max_value=14.0, step=0.1)
+    pH = st.number_input("pH", min_value=0.0, max_value=14.0, step=0.1)
     materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, step=0.1)
     conductividad = st.number_input("Conductividad", min_value=0.0, step=0.01)
     nitrogeno = st.number_input("Nitrógeno (mg/kg)", min_value=0.0, step=0.1)
@@ -100,7 +100,7 @@ def main():
     if st.button("Predecir"):
         input_data = pd.DataFrame([{
             "tipo_suelo": tipo_suelo,
-            "ph": ph,
+            "ph": pH,
             "materia_organica": materia_organica,
             "conductividad": conductividad,
             "nitrogeno": nitrogeno,
