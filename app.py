@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from geopy.geocoders import Nominatim  # Importamos geopy
+from geopy.geocoders import Nominatim
 from predicciones import load_models, predict_fertility_and_cultivo
 
 # Función para obtener el nombre del lugar a partir de latitud y longitud
@@ -52,7 +52,10 @@ def get_elevation(lat, lon):
 
 # Función para asegurarse de que los valores sean numéricos
 def get_numeric_value(value, default=0):
-    return value if isinstance(value, (int, float)) else default
+    if isinstance(value, (int, float)):  # Si es un número, lo devuelve
+        return value
+    else:  # Si no es un número, devuelve el valor por defecto
+        return default
 
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
@@ -163,19 +166,31 @@ def main():
     # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
 
-    # Predicción
-    if st.button("Predecir", key="predict_button"):
-        # Asegurarse de que el orden de las columnas sea correcto
-        input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad, humedad, altitud]],
-                                  columns=["tipo_suelo", "ph", "materia_organica", "conductividad", "nitrogeno", "fosforo", "potasio", "densidad", "humedad", "altitud"])
-        fertility, predicted_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
-        st.write(f"Fertilidad del suelo: {fertility}")
-        st.write(f"Cultivo recomendado: {predicted_cultivo}")
+    if st.button("Predecir fertilidad y cultivo"):
+        # Pasamos los datos de entrada para obtener las predicciones
+        input_data = pd.DataFrame([{
+            'Tipo_Suelo': tipo_suelo,
+            'PH': pH,
+            'Materia_Organica': materia_organica,
+            'Conductividad': conductividad,
+            'Nitrogeno': nitrogeno,
+            'Fosforo': fosforo,
+            'Potasio': potasio,
+            'Densidad': densidad,
+            'Altitud': altitud,
+            'Humedad': humedad
+        }])
+
+        predicted_fertility, predicted_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
+
+        st.markdown(f"<div class='info-box'>Fertilidad: {predicted_fertility}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Cultivo recomendado: {predicted_cultivo}</div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
