@@ -30,16 +30,23 @@ def get_humidity(lat, lon):
     except:
         return None
 
-# Predicción con nombres de columnas explícitos
+# Predicción con nombres de columnas EXACTOS
 def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
+    # Orden y nombres EXACTOS usados en el modelo entrenado
     column_order = [
-        "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno",
-        "fosforo", "potasio", "humedad", "densidad", "altitud"
+        "tipo_suelo", "pH", "materia_organica", "conductividad",
+        "nitrogeno", "fosforo", "potasio",
+        "humedad", "densidad", "altitud"
     ]
-    dmatrix = xgb.DMatrix(input_data[column_order], feature_names=column_order)
+    
+    # Asegurar orden y nombres exactos
+    input_data.columns = column_order  # Sobrescribe directamente si viene en orden
+    dmatrix = xgb.DMatrix(input_data, feature_names=column_order)
+    
     fert_pred = fertilidad_model.predict(dmatrix)
-    crop_pred = cultivo_model.predict(dmatrix)
-    return fert_pred, crop_pred
+    cult_pred = cultivo_model.predict(dmatrix)
+    return fert_pred, cult_pred
+
 
 # Cargar modelos correctamente
 def load_models():
