@@ -32,8 +32,8 @@ def obtener_clima_y_altitud(lat, lon=None):
         #humedad = 52.0
         #altitud = 150.0
         #return humedad, altitud
-    #except:
-        #return None, None
+    except:
+        return None, None
 
 # === Función para predecir ===
 def predecir(input_df, fert_model, cult_model):
