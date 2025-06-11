@@ -109,27 +109,55 @@ def main():
 
     
 
-    if st.button("Predecir"):
-        input_data = pd.DataFrame([{
-            "tipo_suelo": tipo_suelo,
-            "ph": pH,
-            "materia_organica": materia_organica,
-            "conductividad": conductividad,
-            "nitrogeno": nitrogeno,
-            "fosforo": fosforo,
-            "potasio": potasio,
-            "humedad": humedad,
-            "densidad": densidad,
-            "altitud": altitud
-            
-        }])
+    # Diccionario de nombres de cultivos por ID
+cultivos = {
+    0: "Trigo",
+    1: "Maíz",
+    2: "Arroz",
+    3: "Sorgo",
+    4: "Papa",
+    5: "Cebada",
+    6: "Caña de azúcar",
+    7: "Soja",
+    8: "Yuca",
+    9: "Frijol",
+    10: "Avena"
+}
 
-        fert_model, cult_model = load_models()
-        fert_pred, cult_pred = predict_fertility_and_cultivo(input_data, fert_model, cult_model)
+if st.button("Predecir"):
+    input_data = pd.DataFrame([{
+        "tipo_suelo": tipo_suelo,
+        "pH": pH,
+        "materia_organica": materia_organica,
+        "conductividad": conductividad,
+        "nitrogeno": nitrogeno,
+        "fosforo": fosforo,
+        "potasio": potasio,
+        "humedad": humedad,
+        "densidad": densidad,
+        "altitud": altitud
+    }])
 
-        st.success(f"🌱 Fertilidad estimada: {fert_pred[0]}")
-        st.success(f"🌾 Cultivo recomendado: {cult_pred[0]}")
+    fert_model, cult_model = load_models()
 
+    # Asegurar el orden correcto de las columnas
+    column_order = ["tipo_suelo", "pH", "materia_organica", "conductividad",
+                    "nitrogeno", "fosforo", "potasio", "humedad", "densidad", "altitud"]
+
+    dmatrix = xgb.DMatrix(input_data[column_order], feature_names=column_order)
+
+    # Predicción binaria (fertilidad: 0 o 1)
+    fert_pred_prob = fert_model.predict(dmatrix)[0]
+    fert_pred = int(fert_pred_prob >= 0.5)
+
+    # Predicción de cultivo (multiclase)
+    cult_pred_probs = cult_model.predict(dmatrix)[0]
+    cult_pred_class = int(np.argmax(cult_pred_probs))
+    cultivo_nombre = cultivos.get(cult_pred_class, "Desconocido")
+
+    # Mostrar resultados
+    st.success(f"🌱 Fertilidad estimada: {fert_pred}")
+    st.success(f"🌾 Cultivo recomendado: {cultivo_nombre}")
 
 if __name__ == "__main__":
     main()
