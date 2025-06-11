@@ -153,10 +153,9 @@ def main():
             })
 
     with col2:
-        # Botón para limpiar los datos ingresados
-     if st.button("🧹 Limpiar campos"):
-      st.session_state.clear()  # Esto borra TODO, incluido el método de entrada
-      st.success("Campos reiniciados. Recarga si es necesario.")
+        if st.button("🧹 Limpiar campos"):
+          limpiar_campos()
+
 
 
 
