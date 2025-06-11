@@ -162,24 +162,26 @@ def main():
     humidity_value = get_numeric_value(humidity, 0.0)  # Asegura que la humedad es un número flotante
 
     # Ahora pasamos los valores validados a number_input
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
-    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
+    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
+    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
 
-    # Predicción (lógica ya existente)
+    # Cargar los modelos
     fertilidad_model, cultivo_model = load_models()
-    if fertilidad_model is not None and cultivo_model is not None:
-        # Capturar los datos y hacer la predicción
+
+    # Realizar la predicción solo si los modelos se cargaron correctamente
+    if fertilidad_model and cultivo_model:
         st.write("Realizando la predicción...")
         pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
             fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
         )
         st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
         st.write(f"Predicción de Cultivo: {pred_cultivo}")
-
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
