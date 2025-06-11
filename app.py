@@ -1,125 +1,118 @@
 import streamlit as st
-import requests
 import pandas as pd
 import xgboost as xgb
+import requests
 
-# Función para obtener la altitud
-def get_elevation(lat, lon):
+st.set_page_config(page_title="Predicción de Fertilidad y Cultivo", layout="centered")
+
+# === Función para cargar modelos ===
+@st.cache_resource
+def cargar_modelos():
+    fert_model = xgb.Booster()
+    fert_model.load_model("modelo_fertilidad.json")
+
+    cult_model = xgb.Booster()
+    cult_model.load_model("modelo_cultivo.json")
+
+    return fert_model, cult_model
+
+# === Función para obtener clima y altitud ===
+def obtener_clima_y_altitud(lat, lon=None):
     try:
-        url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
-        response = requests.get(url)
-        data = response.json()
-        return float(data['results'][0]['elevation'])
-    except:
-        return None
-
-# Función para obtener la humedad (OpenWeatherMap)
-def get_humidity(lat, lon):
-    api_key = "f75c529787e26621bbd744dd67c056b0"
-    url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "appid": api_key,
-        "units": "metric"
-    }
-    try:
-        response = requests.get(url, params=params)
-        data = response.json()
-        return float(data["main"]["humidity"])
-    except:
-        return None
-
-# Cargar modelos
-def load_models():
-    fertilidad_model = xgb.Booster()
-    fertilidad_model.load_model('fertilidad_model.json')
-    cultivo_model = xgb.Booster()
-    cultivo_model.load_model('cultivo_model.json')
-    return fertilidad_model, cultivo_model
-
-# Predicción
-def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
-    dmatrix = xgb.DMatrix(input_data)
-    fert_pred = fertilidad_model.predict(dmatrix)
-    crop_pred = cultivo_model.predict(dmatrix)
-    return fert_pred, crop_pred
-
-# Inicializar session_state
-if 'humedad' not in st.session_state:
-    st.session_state.humedad = 0.0
-if 'altitud' not in st.session_state:
-    st.session_state.altitud = 0.0
-
-# App principal
-def main():
-    st.title("🌾 Predicción de Fertilidad y Cultivo")
-
-    metodo = st.radio("Método de ingreso de datos:", ["Por coordenadas", "Por ubicación actual", "Manual"])
-
-    lat = lon = None
-
-    if metodo == "Por coordenadas":
-        col1, col2 = st.columns(2)
-        with col1:
-            lat = st.number_input("Latitud", format="%.6f", key="latitud")
-        with col2:
-            lon = st.number_input("Longitud", format="%.6f", key="longitud")
-
-        if st.button("Obtener humedad y altitud"):
-            if lat and lon:
-                humedad = get_humidity(lat, lon)
-                altitud = get_elevation(lat, lon)
-                if humedad is not None:
-                    st.session_state.humedad = humedad
-                if altitud is not None:
-                    st.session_state.altitud = altitud
+        if lon is None:
+            # Si se pasó una ubicación (texto)
+            response = requests.get(f"https://nominatim.openstreetmap.org/search?q={lat}&format=json").json()
+            if response:
+                lat = response[0]["lat"]
+                lon = response[0]["lon"]
             else:
-                st.warning("Ingrese latitud y longitud válidas.")
+                return None, None
+        # Simulación o reemplazo con API real
+        # Por ahora valores fijos de ejemplo:
+        #humedad = 52.0
+        #altitud = 150.0
+        #return humedad, altitud
+    #except:
+        #return None, None
 
-    elif metodo == "Por ubicación actual":
-        st.info("🌍 Función no implementada aún.")
+# === Función para predecir ===
+def predecir(input_df, fert_model, cult_model):
+    columnas = [
+        "tipo_suelo", "ph", "materia_organica", "conductividad",
+        "nitrogeno", "fosforo", "potasio", "humedad",
+        "densidad", "altitud"
+    ]
+    dmatrix = xgb.DMatrix(input_df[columnas], feature_names=columnas)
+    fert_pred = fert_model.predict(dmatrix)
+    cult_pred = cult_model.predict(dmatrix)
+    return fert_pred, cult_pred
 
-    # Mostrar todos los campos
-    st.markdown("### Datos del suelo:")
+# === Interfaz principal ===
+def main():
+    st.title("🌱 Predicción de Fertilidad del Suelo y Cultivo Recomendado")
 
-    tipo_suelo = st.number_input("Tipo de suelo (número)", min_value=0, max_value=10, step=1)
-    pH = st.number_input("pH", min_value=0.0, max_value=14.0, step=0.1)
-    materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, step=0.1)
-    conductividad = st.number_input("Conductividad", min_value=0.0, step=0.01)
-    nitrogeno = st.number_input("Nitrógeno (mg/kg)", min_value=0.0, step=0.1)
-    fosforo = st.number_input("Fósforo (mg/kg)", min_value=0.0, step=0.1)
-    potasio = st.number_input("Potasio (mg/kg)", min_value=0.0, step=0.1)
+    metodo = st.radio("Método de ingreso:", ["Manual", "Por Coordenadas", "Por Ubicación"])
+    humedad, altitud = None, None
 
-    humedad = st.number_input("Humedad (%)", min_value=0.0, max_value=100.0, step=0.1, value=st.session_state.humedad)
-    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0, step=0.01)
-    altitud = st.number_input("Altitud (m)", min_value=-500.0, max_value=9000.0, step=1.0, value=st.session_state.altitud)
+    if metodo == "Por Coordenadas":
+        lat = st.number_input("Latitud", format="%.6f", key="lat")
+        lon = st.number_input("Longitud", format="%.6f", key="lon")
 
-    
+        if lat and lon:
+            humedad, altitud = obtener_clima_y_altitud(lat, lon)
+            if humedad is not None:
+                st.success(f"Humedad: {humedad}%, Altitud: {altitud} m")
+            else:
+                st.warning("No se pudo obtener datos desde las coordenadas.")
+    elif metodo == "Por Ubicación":
+        ubicacion = st.text_input("Ubicación", key="ubicacion")
+        if ubicacion:
+            humedad, altitud = obtener_clima_y_altitud(ubicacion)
+            if humedad is not None:
+                st.success(f"Humedad: {humedad}%, Altitud: {altitud} m")
+            else:
+                st.warning("No se pudo obtener datos desde la ubicación.")
 
-    if st.button("Predecir"):
-        input_data = pd.DataFrame([{
-            "tipo_suelo": tipo_suelo,
-            "ph": pH,
-            "materia_organica": materia_organica,
-            "conductividad": conductividad,
-            "nitrogeno": nitrogeno,
-            "fosforo": fosforo,
-            "potasio": potasio,
-            "humedad": humedad,
-            "densidad": densidad,
-            "altitud": altitud
-            
-        }])
+    st.subheader("📋 Datos del suelo")
 
-        fert_model, cult_model = load_models()
-        fert_pred, cult_pred = predict_fertility_and_cultivo(input_data, fert_model, cult_model)
+    tipo_suelo = st.number_input("Tipo de suelo (número)", key="tipo_suelo")
+    ph = st.number_input("pH", key="ph")
+    materia_organica = st.number_input("Materia orgánica (%)", key="materia_organica")
+    conductividad = st.number_input("Conductividad (dS/m)", key="conductividad")
+    nitrogeno = st.number_input("Nitrógeno (mg/kg)", key="nitrogeno")
+    fosforo = st.number_input("Fósforo (mg/kg)", key="fosforo")
+    potasio = st.number_input("Potasio (mg/kg)", key="potasio")
+    densidad = st.number_input("Densidad (g/cm³)", key="densidad")
 
-        st.success(f"🌱 Fertilidad estimada: {fert_pred[0]:.2f}")
-        st.success(f"🌾 Cultivo recomendado (ID): {int(cult_pred[0])}")
+    humedad = st.number_input("Humedad (%)", value=humedad or 0.0, key="humedad")
+    altitud = st.number_input("Altitud (m)", value=altitud or 0.0, key="altitud")
+
+    if st.button("🔍 Predecir"):
+        try:
+            input_df = pd.DataFrame([{
+                "tipo_suelo": tipo_suelo,
+                "ph": ph,
+                "materia_organica": materia_organica,
+                "conductividad": conductividad,
+                "nitrogeno": nitrogeno,
+                "fosforo": fosforo,
+                "potasio": potasio,
+                "humedad": humedad,
+                "densidad": densidad,
+                "altitud": altitud
+            }])
+
+            fert_model, cult_model = cargar_modelos()
+            fert, cult = predecir(input_df, fert_model, cult_model)
+
+            st.success(f"🌾 Fertilidad estimada: {fert[0]:.2f}")
+            st.success(f"🌽 Cultivo recomendado: {cult[0]:.0f}")
+        except Exception as e:
+            st.error(f"Ocurrió un error: {e}")
 
 if __name__ == "__main__":
     main()
+
 
 
 
