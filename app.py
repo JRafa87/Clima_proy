@@ -32,15 +32,15 @@ def get_humidity(lat, lon):
         return None, "Ubicación desconocida"
 
 def limpiar_campos():
-    st.session_state.tipo_suelo = 0
-    st.session_state.pH = 0.0
-    st.session_state.materia_organica = 0.0
-    st.session_state.conductividad = 0.0
-    st.session_state.nitrogeno = 0.0
-    st.session_state.fosforo = 0.0
-    st.session_state.potasio = 0.0
+    st.tipo_suelo = 0
+    st.pH = 0.0
+    st.materia_organica = 0.0
+    st.conductividad = 0.0
+    st.nitrogeno = 0.0
+    st.fosforo = 0.0
+    st.potasio = 0.0
     st.session_state.humedad = 0.0
-    st.session_state.densidad = 0.0
+    st.densidad = 0.0
     st.session_state.altitud = 0.0
 
 # Inicializar claves del estado de sesión
