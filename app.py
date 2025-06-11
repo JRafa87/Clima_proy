@@ -106,8 +106,9 @@ def main():
             "fosforo": fosforo,
             "potasio": potasio,
             "humedad": humedad,
-            "altitud": altitud,
             "densidad": densidad
+            "altitud": altitud
+            
         }])
 
         fert_model, cult_model = load_models()
