@@ -106,7 +106,7 @@ def main():
             "fosforo": fosforo,
             "potasio": potasio,
             "humedad": humedad,
-            "densidad": densidad
+            "densidad": densidad,
             "altitud": altitud
             
         }])
