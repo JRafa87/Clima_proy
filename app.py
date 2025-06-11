@@ -6,51 +6,45 @@ import requests
 from geopy.geocoders import Nominatim
 
 
-# Función para cargar los modelos
+# Función para cargar los modelos de XGBoost (.json)
 def load_models():
     try:
-        # Cargar los modelos desde las rutas proporcionadas
-        fertilidad_model = joblib.load("fertilidad_model.json")  # Asegúrate de colocar la ruta correcta
-        cultivo_model = joblib.load("cultivo_model.json")  # Asegúrate de colocar la ruta correcta
+        fertilidad_model = xgb.Booster()
+        fertilidad_model.load_model("fertilidad_model.json")
+
+        cultivo_model = xgb.Booster()
+        cultivo_model.load_model("cultivo_model.json")
+
         return fertilidad_model, cultivo_model
     except FileNotFoundError as e:
-        print(f"Error: No se pudo encontrar uno de los archivos de modelo. {str(e)}")
+        st.error(f"No se pudo encontrar uno de los archivos del modelo. {str(e)}")
         return None, None
     except Exception as e:
-        print(f"Error al cargar los modelos: {str(e)}")
+        st.error(f"Error al cargar los modelos: {str(e)}")
         return None, None
-
 
 # Función para predecir fertilidad y cultivo
 def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
-    # Verificar si los modelos se cargaron correctamente
-    if fertilidad_model is None or cultivo_model is None:
-        raise ValueError("Los modelos no se cargaron correctamente. Verifica los archivos.")
-    
     try:
-        # Convertir input_data a un formato adecuado para XGBoost (DMatrix o np.array)
-        input_array = np.array(input_data).reshape(1, -1)  # Asegurarse de que sea un array 2D (una muestra)
+        input_array = np.array(input_data).reshape(1, -1)
         input_dmatrix = xgb.DMatrix(input_array)
 
-        # Predicción de fertilidad
-        fertilidad = int(fertilidad_model.predict(input_dmatrix)[0])  # Asegúrate de que el índice es correcto
+        fertilidad = int(fertilidad_model.predict(input_dmatrix)[0])
         predicted_fertilidad = "Fértil" if fertilidad == 1 else "Infértil"
-        
-        # Predicción del cultivo basado en la fertilidad
+
         predicted_cultivo = "Ninguno"
         if fertilidad == 1:
             cultivo = int(cultivo_model.predict(input_dmatrix)[0])
-            # Lista de cultivos posibles, en función del modelo de cultivo
             cultivos = [
                 "Trigo", "Maíz", "Caña de Azúcar", "Algodón", "Arroz", "Papa",
                 "Cebolla", "Tomate", "Batata", "Brócoli", "Café"
             ]
             predicted_cultivo = cultivos[cultivo] if cultivo < len(cultivos) else "Desconocido"
-        
+
         return predicted_fertilidad, predicted_cultivo
     except Exception as e:
-        print(f"Error en la predicción: {str(e)}")
-        return "Error en la predicción", "Error en la predicción"
+        st.error(f"Error en la predicción: {str(e)}")
+        return "Error", "Error"
 
 
 # Función para obtener los datos climáticos y la ubicación
