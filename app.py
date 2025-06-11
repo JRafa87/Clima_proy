@@ -31,6 +31,18 @@ def get_humidity(lat, lon):
     except:
         return None, "Ubicación desconocida"
 
+def limpiar_campos():
+    st.session_state.tipo_suelo = 0
+    st.session_state.pH = 0.0
+    st.session_state.materia_organica = 0.0
+    st.session_state.conductividad = 0.0
+    st.session_state.nitrogeno = 0.0
+    st.session_state.fosforo = 0.0
+    st.session_state.potasio = 0.0
+    st.session_state.humedad = 0.0
+    st.session_state.densidad = 0.0
+    st.session_state.altitud = 0.0
+
 # Inicializar claves del estado de sesión
 def init_session_state(defaults):
     for key, value in defaults.items():
@@ -151,17 +163,7 @@ def main():
                 "cultivo": cultivo_nombre,
                 "ubicacion": st.session_state.ubicacion_nombre or "Manual"
             })
-def limpiar_campos():
-    st.session_state.tipo_suelo = 0
-    st.session_state.pH = 0.0
-    st.session_state.materia_organica = 0.0
-    st.session_state.conductividad = 0.0
-    st.session_state.nitrogeno = 0.0
-    st.session_state.fosforo = 0.0
-    st.session_state.potasio = 0.0
-    st.session_state.humedad = 0.0
-    st.session_state.densidad = 0.0
-    st.session_state.altitud = 0.0
+
 
     with col2:
         if st.button("🧹 Limpiar campos"):
