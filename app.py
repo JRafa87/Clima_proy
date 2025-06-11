@@ -86,7 +86,7 @@ def main():
     tipo_suelo = st.number_input("Tipo de suelo (número)", min_value=0, max_value=10, step=1)
     ph = st.number_input("pH", min_value=0.0, max_value=14.0, step=0.1)
     materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, step=0.1)
-    conductividad = st.number_input("Conductividad eléctrica (dS/m)", min_value=0.0, step=0.01)
+    conductividad = st.number_input("Conductividad", min_value=0.0, step=0.01)
     nitrogeno = st.number_input("Nitrógeno (mg/kg)", min_value=0.0, step=0.1)
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0.0, step=0.1)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0.0, step=0.1)
@@ -94,7 +94,7 @@ def main():
     humedad = st.number_input("Humedad (%)", min_value=0.0, max_value=100.0, step=0.1, value=st.session_state.humedad)
     altitud = st.number_input("Altitud (m)", min_value=-500.0, max_value=9000.0, step=1.0, value=st.session_state.altitud)
 
-    densidad = st.number_input("Densidad aparente (g/cm³)", min_value=0.0, step=0.01)
+    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0, step=0.01)
 
     if st.button("Predecir"):
         input_data = pd.DataFrame([{
