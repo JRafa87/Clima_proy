@@ -33,7 +33,7 @@ def get_humidity(lat, lon):
 # Predicción con nombres de columnas explícitos
 def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
     column_order = [
-        "tipo_suelo", "ph", "materia_organica", "conductividad", "nitrogeno",
+        "tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno",
         "fosforo", "potasio", "humedad", "densidad", "altitud"
     ]
     dmatrix = xgb.DMatrix(input_data[column_order], feature_names=column_order)
