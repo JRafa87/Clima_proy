@@ -2,146 +2,160 @@ import streamlit as st
 import requests
 import pandas as pd
 import xgboost as xgb
-from clima_api import get_weather_data  # Asegúrate de tener esta función implementada en tu archivo clima_api.py
 
-# Función para obtener la altitud (elevación) usando Open-Elevation API
+# Función para obtener la altitud
 def get_elevation(lat, lon):
     url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
     response = requests.get(url)
     data = response.json()
-    return data['results'][0]['elevation']  # Retorna la altitud en metros
+    return data['results'][0]['elevation']
 
+# ✅ Función para obtener datos del clima desde OpenWeatherMap
+def get_weather_data(lat, lon):
+    api_key = "f75c529787e26621bbd744dd67c056b0"  # Reemplaza con tu propia clave si es necesario
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+        "units": "metric"
+    }
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        weather = {
+            "temperature": data["main"]["temp"],
+            "humidity": data["main"]["humidity"],
+            "wind_speed": data["wind"]["speed"]
+        }
+        return weather
+    except Exception as e:
+        return {"error": str(e)}
+
+# Cargar modelos
 def load_models():
-    # Cargar el modelo de fertilidad (en formato JSON)
     fertilidad_model = xgb.Booster()
-    fertilidad_model.load_model('fertilidad_model.json')  # Asumiendo que el modelo fue guardado en .json
+    fertilidad_model.load_model('fertilidad_model.json')
 
-    # Cargar el modelo de cultivo (en formato JSON)
     cultivo_model = xgb.Booster()
-    cultivo_model.load_model('cultivo_model.json')  # Lo mismo aquí
+    cultivo_model.load_model('cultivo_model.json')
 
     return fertilidad_model, cultivo_model
 
+# Realizar predicciones
 def predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model):
-    # Convertir el dataframe de entrada a DMatrix, formato requerido por XGBoost
     input_dmatrix = xgb.DMatrix(input_data)
-
-    # Predicciones con el modelo de fertilidad
     fertility_prediction = fertilidad_model.predict(input_dmatrix)
-
-    # Predicciones con el modelo de cultivo
     crop_prediction = cultivo_model.predict(input_dmatrix)
-
     return fertility_prediction, crop_prediction
 
-# Función principal para la interfaz
+# App principal
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
-    st.markdown("""
-        <style>
-            .main { 
-                background-color: #f0f4f8; 
-                padding: 20px; 
-                border-radius: 10px;
-            }
-            h1 {
-                color: #2C3E50;
-            }
-            .section-title {
-                font-size: 1.5em;
-                color: #3498DB;
-            }
-            .info-box {
-                padding: 10px;
-                border-radius: 5px;
-                background-color: #ecf0f1;
-            }
-            .input-field {
-                background-color: #d5dbdb;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+
+    st.markdown("""<style>
+        .main { background-color: #f0f4f8; padding: 20px; border-radius: 10px; }
+        h1 { color: #2C3E50; }
+        .section-title { font-size: 1.5em; color: #3498DB; }
+        .info-box { padding: 10px; border-radius: 5px; background-color: #ecf0f1; }
+    </style>""", unsafe_allow_html=True)
 
     st.markdown("<div class='main'>", unsafe_allow_html=True)
 
-    # Selección de cómo obtener los datos climáticos
+    # Selección de origen del clima
     st.markdown("<div class='section-title'>Seleccione cómo desea obtener los datos climáticos</div>", unsafe_allow_html=True)
-    weather_option = st.radio("¿Cómo deseas obtener los datos del clima?", 
-                              ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
+    weather_option = st.radio("¿Cómo deseas obtener los datos del clima?",
+                              ["Por coordenadas", "Por ubicación actual", "Manualmente"])
 
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
-            lat = st.number_input("Latitud", value=0.0)
+            lat = st.number_input("Latitud", value=19.4326)
         with col2:
-            lon = st.number_input("Longitud", value=0.0)
+            lon = st.number_input("Longitud", value=-99.1332)
 
-        if st.button("Obtener clima", key="get_weather_button"):
+        if st.button("Obtener clima"):
             weather_data = get_weather_data(lat, lon)
             elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                        f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            if "error" not in weather_data:
+                st.markdown(f"<div class='info-box'>Temperatura: {weather_data['temperature']}°C, "
+                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            else:
+                st.error("Error al obtener el clima: " + weather_data["error"])
 
     elif weather_option == "Por ubicación actual":
-        # Obtener ubicación actual del usuario
         st.write("Haz clic en el botón para obtener tu ubicación actual.")
         if st.button("Obtener ubicación actual"):
-            location = st.text_input("Ubicación actual", value="No disponible")
-            st.write(f"Ubicación: {location}")  # Aquí agregarías código para obtener la ubicación real.
-            
-            # Simulamos una ubicación para este ejemplo:
-            lat, lon = 20.0, 0.0  # Estos valores deberían ser obtenidos de la geolocalización real.
+            # Aquí normalmente iría geolocalización por navegador, pero usaremos CDMX como valor por defecto
+            lat, lon = 19.4326, -99.1332
+            st.write("Ubicación: Ciudad de México")
+
             weather_data = get_weather_data(lat, lon)
             elevation = get_elevation(lat, lon)
-            st.markdown(f"<div class='info-box'>Datos del clima: Temperatura: {weather_data['temperature']}°C, "
-                        f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            if "error" not in weather_data:
+                st.markdown(f"<div class='info-box'>Temperatura: {weather_data['temperature']}°C, "
+                            f"Humedad: {weather_data['humidity']}%, Viento: {weather_data['wind_speed']} m/s</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)
+            else:
+                st.error("Error al obtener el clima: " + weather_data["error"])
 
     elif weather_option == "Manualmente":
-        # Campos manuales
         temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
         humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
         wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+        elevation = st.number_input("Altitud (m)", min_value=0)
 
-    # Entradas de datos del suelo
+    # Entradas del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
-    tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4], key="tipo_suelo")
-    pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0, key="ph")
-    materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0, max_value=100.0)
+    tipo_suelo = st.selectbox("Tipo de suelo", [1, 2, 3, 4])
+    pH = st.number_input("pH del suelo", min_value=0.0, max_value=14.0)
+    materia_organica = st.number_input("Materia orgánica (%)", min_value=0.0)
     conductividad = st.number_input("Conductividad (mS/cm)", min_value=0.0)
     nitrogeno = st.number_input("Nitrógeno (%)", min_value=0.0)
     fosforo = st.number_input("Fósforo (mg/kg)", min_value=0)
     potasio = st.number_input("Potasio (mg/kg)", min_value=0)
     humedad_suelo = st.number_input("Humedad del suelo (%)", min_value=0, max_value=100)
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
-    altitud = st.number_input("Altitud (metros)", min_value=0)
 
-    # Recoger las variables del clima si están disponibles
-    temperature = st.number_input("Temperatura (°C)", min_value=-50, max_value=50)
-    humidity = st.number_input("Humedad (%)", min_value=0, max_value=100)
-    wind_speed = st.number_input("Velocidad del viento (m/s)", min_value=0.0)
+    # Definir variables climáticas según opción
+    if weather_option == "Manualmente":
+        pass  # Ya están definidas
+    elif weather_option in ["Por coordenadas", "Por ubicación actual"]:
+        # Reusar los valores obtenidos
+        temperature = weather_data.get("temperature", 0)
+        humidity = weather_data.get("humidity", 0)
+        wind_speed = weather_data.get("wind_speed", 0)
+    else:
+        temperature = humidity = wind_speed = 0.0
 
-    # Cargar los modelos
+    # Altitud (si se obtuvo)
+    if weather_option != "Manualmente":
+        altitud = elevation
+    else:
+        altitud = st.number_input("Altitud (m)", min_value=0)
+
+    # Cargar modelos
     fertilidad_model, cultivo_model = load_models()
 
-    # Predicción
-    if st.button("Predecir", key="predict_button"):
-        # Compilación de los datos para la predicción
-        input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, humedad_suelo, densidad, altitud, temperature, humidity, wind_speed]], 
-                                  columns=["tipo_suelo", "pH", "materia_organica", "conductividad", "nitrogeno", "fosforo", "potasio", "humedad_suelo", "densidad", "altitud", "temperature", "humidity", "wind_speed"])
+    # Botón de predicción
+    if st.button("Predecir"):
+        input_data = pd.DataFrame([[tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo,
+                                    potasio, densidad, altitud, humidity]],
+                                  columns=["tipo_suelo", "pH", "materia_organica", "conductividad",
+                                           "nitrogeno", "fosforo", "potasio",
+                                           "densidad", "altitud","humidity"])
 
-        # Hacer la predicción con los modelos cargados
         fertility_prediction, crop_prediction = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
 
-        # Mostrar las predicciones
-        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Fertilidad Predicha: {fertility_prediction[0]:.2f}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='info-box'>Cultivo Predicho: {crop_prediction[0]:.2f}</div>", unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
