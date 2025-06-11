@@ -92,9 +92,10 @@ def main():
     potasio = st.number_input("Potasio (mg/kg)", min_value=0.0, step=0.1)
 
     humedad = st.number_input("Humedad (%)", min_value=0.0, max_value=100.0, step=0.1, value=st.session_state.humedad)
+    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0, step=0.01)
     altitud = st.number_input("Altitud (m)", min_value=-500.0, max_value=9000.0, step=1.0, value=st.session_state.altitud)
 
-    densidad = st.number_input("Densidad (g/cm³)", min_value=0.0, step=0.01)
+    
 
     if st.button("Predecir"):
         input_data = pd.DataFrame([{
