@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import requests
 from geopy.geocoders import Nominatim
 from predicciones import load_models, predict_fertility_and_cultivo
@@ -51,11 +50,14 @@ def get_elevation(lat, lon):
     return data['results'][0]['elevation']  # Retorna la altitud en metros
 
 # Función para asegurarse de que los valores sean numéricos
-def get_numeric_value(value, default=0):
-    if isinstance(value, (int, float)):  # Si es un número, lo devuelve
-        return value
-    else:  # Si no es un número, devuelve el valor por defecto
-        return default
+def get_numeric_value(value, default=0.0):
+    try:
+        # Eliminar texto no numérico (como " metros") y convertir a float
+        if isinstance(value, str):
+            value = ''.join(filter(str.isdigit, value))  # Extraer solo los dígitos
+        return float(value)
+    except (ValueError, TypeError):
+        return default  # Si no se puede convertir, devolver el valor por defecto
 
 def main():
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
@@ -92,8 +94,8 @@ def main():
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
     # Variables para humedad y altitud
-    humidity = 0  # Aseguramos que la humedad tenga un valor por defecto numérico
-    elevation = 0  # Aseguramos que la altitud tenga un valor por defecto numérico
+    humidity = 0.0  # Aseguramos que la humedad tenga un valor por defecto numérico
+    elevation = 0.0  # Aseguramos que la altitud tenga un valor por defecto numérico
     location_name = None
     lat, lon = None, None
 
@@ -156,40 +158,29 @@ def main():
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
 
     # Validación y ajuste de valores numéricos
-    elevation_value = get_numeric_value(elevation, 0)  # Asegura que la altitud es un número
-    humidity_value = get_numeric_value(humidity, 0)  # Asegura que la humedad es un número
+    elevation_value = get_numeric_value(elevation, 0.0)  # Asegura que la altitud es un número flotante
+    humidity_value = get_numeric_value(humidity, 0.0)  # Asegura que la humedad es un número flotante
 
     # Ahora pasamos los valores validados a number_input
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
-    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
+    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
+    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
 
-    # Cargar los modelos
+    # Predicción (lógica ya existente)
     fertilidad_model, cultivo_model = load_models()
-
-    if st.button("Predecir fertilidad y cultivo"):
-        # Pasamos los datos de entrada para obtener las predicciones
-        input_data = pd.DataFrame([{
-            'Tipo_Suelo': tipo_suelo,
-            'PH': pH,
-            'Materia_Organica': materia_organica,
-            'Conductividad': conductividad,
-            'Nitrogeno': nitrogeno,
-            'Fosforo': fosforo,
-            'Potasio': potasio,
-            'Densidad': densidad,
-            'Altitud': altitud,
-            'Humedad': humedad
-        }])
-
-        predicted_fertility, predicted_cultivo = predict_fertility_and_cultivo(input_data, fertilidad_model, cultivo_model)
-
-        st.markdown(f"<div class='info-box'>Fertilidad: {predicted_fertility}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='info-box'>Cultivo recomendado: {predicted_cultivo}</div>", unsafe_allow_html=True)
+    if fertilidad_model is not None and cultivo_model is not None:
+        # Capturar los datos y hacer la predicción
+        st.write("Realizando la predicción...")
+        pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
+            fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
+        )
+        st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
+        st.write(f"Predicción de Cultivo: {pred_cultivo}")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
