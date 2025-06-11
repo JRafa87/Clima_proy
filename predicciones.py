@@ -4,8 +4,8 @@ import joblib  # Asegúrate de importar joblib
 def load_models():
     try:
         # Cargar los modelos desde las rutas proporcionadas
-        fertilidad_model = joblib.load("fertilidad_model.pkl")  # Asegúrate de colocar la ruta correcta
-        cultivo_model = joblib.load("cultivo_model.pkl")  # Asegúrate de colocar la ruta correcta
+        fertilidad_model = joblib.load("fertilidad_model.json")  # Asegúrate de colocar la ruta correcta
+        cultivo_model = joblib.load("cultivo_model.json")  # Asegúrate de colocar la ruta correcta
         return fertilidad_model, cultivo_model
     except FileNotFoundError as e:
         # Si los archivos no se encuentran
