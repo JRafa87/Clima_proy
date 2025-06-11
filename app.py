@@ -174,20 +174,21 @@ def main():
     elevation_value = get_numeric_value(st.session_state['elevation'], 0.0)  # Asegura que la altitud es un número flotante
     humidity_value = get_numeric_value(st.session_state['humidity'], 0.0)  # Asegura que la humedad es un número flotante
 
-    # Mostrar los valores numéricos
+    # Ahora pasamos los valores validados a number_input
     altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
     humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
 
-    # Predicción (lógica ya existente)
-    fertilidad_model, cultivo_model = load_models()
-    if fertilidad_model is not None and cultivo_model is not None:
-        # Capturar los datos y hacer la predicción
-        st.write("Realizando la predicción...")
-        pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
-            fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
-        )
-        st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
-        st.write(f"Predicción de Cultivo: {pred_cultivo}")
+    # Botón para realizar la predicción
+    if st.button("Realizar predicción"):
+        fertilidad_model, cultivo_model = load_models()
+        if fertilidad_model is not None and cultivo_model is not None:
+            # Capturar los datos y hacer la predicción
+            st.write("Realizando la predicción...")
+            pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
+                fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
+            )
+            st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
+            st.write(f"Predicción de Cultivo: {pred_cultivo}")
 
     # Botón para borrar datos
     if st.button("Borrar todos los datos"):
@@ -197,6 +198,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
