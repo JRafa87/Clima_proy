@@ -174,7 +174,7 @@ def main():
     elevation_value = get_numeric_value(st.session_state['elevation'], 0.0)  # Asegura que la altitud es un número flotante
     humidity_value = get_numeric_value(st.session_state['humidity'], 0.0)  # Asegura que la humedad es un número flotante
 
-    # Ahora pasamos los valores validados a number_input
+    # Mostrar los valores numéricos
     altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
     humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
 
@@ -197,6 +197,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
