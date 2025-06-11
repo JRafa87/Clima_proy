@@ -155,9 +155,9 @@ def main():
     with col2:
         # Botón para limpiar los datos ingresados
      if st.button("🧹 Limpiar campos"):
-      for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.experimental_rerun()
+      st.session_state.clear()  # Esto borra TODO, incluido el método de entrada
+      st.success("Campos reiniciados. Recarga si es necesario.")
+
 
 
     # Mostrar historial
