@@ -153,9 +153,12 @@ def main():
             })
 
     with col2:
-        if st.button("🧹 Limpiar campos"):
-            for key in ["humedad", "altitud", "latitud", "longitud", "ubicacion_nombre"]:
-                st.session_state[key] = 0.0 if isinstance(st.session_state[key], float) else ""
+        # Botón para limpiar los datos ingresados
+     if st.button("🧹 Limpiar campos"):
+      for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.experimental_rerun()
+
 
     # Mostrar historial
     if st.session_state.historial:
