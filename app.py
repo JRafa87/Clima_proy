@@ -60,6 +60,15 @@ def get_numeric_value(value, default=0.0):
         return default  # Si no se puede convertir, devolver el valor por defecto
 
 def main():
+    # Usar session_state para guardar datos
+    if 'humidity' not in st.session_state:
+        st.session_state['humidity'] = 0.0
+    if 'elevation' not in st.session_state:
+        st.session_state['elevation'] = 0.0
+    if 'location_name' not in st.session_state:
+        st.session_state['location_name'] = ""
+    
+    # Título de la app
     st.title("Predicción de Fertilidad del Suelo con Geolocalización")
     st.markdown("""
         <style>
@@ -94,11 +103,9 @@ def main():
                               ["Por coordenadas", "Por ubicación actual", "Manualmente"], key="weather_option")
 
     # Variables para humedad y altitud
-    humidity = 0.0  # Aseguramos que la humedad tenga un valor por defecto numérico
-    elevation = 0.0  # Aseguramos que la altitud tenga un valor por defecto numérico
-    location_name = None
     lat, lon = None, None
-
+    location_name = st.session_state['location_name']
+    
     if weather_option == "Por coordenadas":
         col1, col2 = st.columns(2)
         with col1:
@@ -112,16 +119,19 @@ def main():
 
             # Verificar si la humedad fue obtenida correctamente
             if isinstance(humidity, int):  # Si la humedad es un valor entero, es correcta
+                st.session_state['humidity'] = humidity
                 st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
             else:
                 st.error(f"Error: {humidity['error']}")  # Mostramos el error si no fue posible obtener la humedad
 
             # Obtener la altitud
             elevation = get_elevation(lat, lon)
+            st.session_state['elevation'] = elevation
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)  # Solo el valor numérico
 
             # Obtener el nombre del lugar (opcional)
             location_name = get_location_name(lat, lon)
+            st.session_state['location_name'] = location_name
             st.markdown(f"<div class='info-box'>Ubicación: {location_name}</div>", unsafe_allow_html=True)
 
     elif weather_option == "Por ubicación actual":
@@ -130,21 +140,24 @@ def main():
             # Simulación de latitud y longitud (esto se debe reemplazar por la API real)
             lat, lon = 19.432608, -99.133209  # Ejemplo de latitud y longitud de Ciudad de México
             location_name = "Ciudad de México"  # Ejemplo
+            st.session_state['location_name'] = location_name
             st.write(f"Ubicación: {location_name}")
 
             # Obtener la humedad y altitud para esta ubicación
             humidity = get_weather_data(lat, lon)
             if isinstance(humidity, int):
+                st.session_state['humidity'] = humidity
                 st.markdown(f"<div class='info-box'>Humedad: {humidity}%</div>", unsafe_allow_html=True)
             else:
                 st.error(f"Error: {humidity['error']}")
 
             elevation = get_elevation(lat, lon)
+            st.session_state['elevation'] = elevation
             st.markdown(f"<div class='info-box'>Altitud: {elevation} metros</div>", unsafe_allow_html=True)  # Solo el valor numérico
 
     elif weather_option == "Manualmente":
         # Si elige "Manualmente", no se usan los valores de humedad ni altitud obtenidos automáticamente.
-        humedad = st.number_input("Humedad (%)", min_value=0, max_value=100)
+        st.session_state['humidity'] = st.number_input("Humedad (%)", min_value=0, max_value=100)
 
     # Entradas de datos del suelo
     st.markdown("<div class='section-title'>Datos del suelo</div>", unsafe_allow_html=True)
@@ -158,29 +171,33 @@ def main():
     densidad = st.number_input("Densidad (g/cm³)", min_value=0.0)
 
     # Validación y ajuste de valores numéricos
-    elevation_value = get_numeric_value(elevation, 0.0)  # Asegura que la altitud es un número flotante
-    humidity_value = get_numeric_value(humidity, 0.0)  # Asegura que la humedad es un número flotante
+    elevation_value = get_numeric_value(st.session_state['elevation'], 0.0)  # Asegura que la altitud es un número flotante
+    humidity_value = get_numeric_value(st.session_state['humidity'], 0.0)  # Asegura que la humedad es un número flotante
 
     # Ahora pasamos los valores validados a number_input
-    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0)
-    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0, max_value=100)
+    altitud = st.number_input("Altitud (metros)", value=elevation_value, min_value=0.0)
+    humedad = st.number_input("Humedad (%)", value=humidity_value, min_value=0.0, max_value=100.0)
 
-    # Cargar los modelos
+    # Predicción (lógica ya existente)
     fertilidad_model, cultivo_model = load_models()
-
-    # Realizar la predicción solo si los modelos se cargaron correctamente
-    if fertilidad_model and cultivo_model:
+    if fertilidad_model is not None and cultivo_model is not None:
+        # Capturar los datos y hacer la predicción
         st.write("Realizando la predicción...")
         pred_fertilidad, pred_cultivo = predict_fertility_and_cultivo(
             fertilidad_model, cultivo_model, tipo_suelo, pH, materia_organica, conductividad, nitrogeno, fosforo, potasio, densidad
         )
         st.write(f"Predicción de Fertilidad: {pred_fertilidad}")
         st.write(f"Predicción de Cultivo: {pred_cultivo}")
-    
+
+    # Botón para borrar datos
+    if st.button("Borrar todos los datos"):
+        st.session_state.clear()
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
